@@ -97,3 +97,6 @@ growth/**
 
 # Agent long-running task memory
 .task/
+
+# Root spikes (deck-adapter etc.) — artefatos de exploração, não são produto
+/root/
