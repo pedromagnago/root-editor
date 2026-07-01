@@ -1405,6 +1405,8 @@ export const tr: Dict = {
   'newproj.importClaudeZip': 'Claude Design ZIP’i içe aktar',
   'newproj.importClaudeZipTitle': 'Bir Claude Design .zip’ini içe aktarın',
   'newproj.importingClaudeZip': 'İçe aktarılıyor…',
+  'newproj.importCarousel': "Import carousel (slides.json)",
+  'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': 'Projeyi varsayılan olarak yalnızca siz görebilirsiniz.',
   'newproj.designSystem': 'Tasarım sistemi',
   'newproj.dsNoneFreeform': 'Hiçbiri — serbest stil',

@@ -21,6 +21,11 @@ import {
 import { authorizeReasoningEgress, sendReasoningEgressDenial } from './reasoning-egress.js';
 import { sandboxImportedProjectRootUnavailableReason } from './sandbox-mode.js';
 import { parseOrchestratorWorkspace } from './workspace-contract.js';
+import {
+  CarouselContractError,
+  buildCarouselDeckHtml,
+  parseCarouselSlides,
+} from './carousel-import.js';
 
 export interface RegisterImportRoutesDeps extends RouteDeps<'db' | 'http' | 'uploads' | 'node' | 'ids' | 'paths' | 'imports' | 'auth' | 'projectStore' | 'conversations' | 'projectFiles' | 'validation'> {}
 
@@ -102,6 +107,190 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
       }
     },
   );
+
+  // Import a carousel piece (folder containing slides.json, the V02/V03
+  // machine contract) as a materialized deck project. Unlike folder import,
+  // the piece folder is read ONCE and the generated deck lives under
+  // PROJECTS_DIR — edits never mutate the source folder.
+  app.post('/api/import/carousel', async (req, res) => {
+    try {
+      const { baseDir, name } = req.body || {};
+      if (typeof baseDir !== 'string' || !baseDir.trim()) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'baseDir required');
+      }
+      if (isDesktopAuthGateActive()) {
+        const secret = desktopAuthSecret();
+        if (secret == null) {
+          return sendApiError(
+            res,
+            503,
+            'DESKTOP_AUTH_PENDING',
+            'desktop auth required but secret not yet registered',
+            {
+              details: { hint: 'restart desktop or wait for sidecar registration' },
+              retryable: true,
+            },
+          );
+        }
+        const headerValue = req.get('x-od-desktop-import-token');
+        const token = typeof headerValue === 'string' ? headerValue : '';
+        const now = Date.now();
+        pruneExpiredImportNonces(now);
+        const verification = verifyDesktopImportToken(
+          secret,
+          baseDir,
+          token,
+          now,
+          consumedImportNonces,
+        );
+        if (!verification.ok) {
+          return sendApiError(res, 403, 'FORBIDDEN', 'desktop import token rejected', {
+            details: { reason: verification.reason },
+          });
+        }
+        consumedImportNonces.set(verification.nonce, verification.exp);
+      }
+      const trimmedInput = baseDir.trim();
+      if (!path.isAbsolute(path.normalize(trimmedInput))) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'baseDir must be absolute');
+      }
+      let normalizedPath: string;
+      try {
+        normalizedPath = await fs.promises.realpath(trimmedInput);
+      } catch {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'folder not found');
+      }
+      let dirStat;
+      try {
+        dirStat = await fs.promises.lstat(normalizedPath);
+      } catch {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'folder not found');
+      }
+      if (!dirStat.isDirectory()) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'path must be a directory');
+      }
+      if (
+        normalizedPath === RUNTIME_DATA_DIR_CANONICAL ||
+        normalizedPath.startsWith(RUNTIME_DATA_DIR_CANONICAL + path.sep)
+      ) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'cannot import the data directory');
+      }
+
+      const slidesPath = path.join(normalizedPath, 'slides.json');
+      let slidesRaw: string;
+      try {
+        slidesRaw = await fs.promises.readFile(slidesPath, 'utf8');
+      } catch {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'slides.json not found in folder');
+      }
+      let slidesValue: unknown;
+      try {
+        slidesValue = JSON.parse(slidesRaw);
+      } catch (err: any) {
+        return sendApiError(
+          res,
+          400,
+          'BAD_REQUEST',
+          `slides.json is not valid JSON: ${String(err?.message || err)}`,
+        );
+      }
+      let deck;
+      try {
+        deck = parseCarouselSlides(slidesValue);
+      } catch (err) {
+        if (err instanceof CarouselContractError) {
+          return sendApiError(res, 400, 'BAD_REQUEST', err.message, {
+            details: { problems: err.problems },
+          });
+        }
+        throw err;
+      }
+
+      // Images resolve relative to the piece folder and are embedded as
+      // base64 (deck HTML stays self-contained). Refs escaping the folder
+      // are refused — a hostile slides.json must not read arbitrary paths.
+      const resolveImage = (ref: string): string | null => {
+        const resolved = path.resolve(normalizedPath, ref);
+        if (resolved !== normalizedPath && !resolved.startsWith(normalizedPath + path.sep)) {
+          return null;
+        }
+        let bytes: Buffer;
+        try {
+          bytes = fs.readFileSync(resolved);
+        } catch {
+          return null;
+        }
+        const ext = resolved.split('.').pop()?.toLowerCase();
+        const mime =
+          ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+        return `data:${mime};base64,${bytes.toString('base64')}`;
+      };
+
+      const html = await buildCarouselDeckHtml(deck, { resolveImage });
+
+      const id = randomId();
+      const now = Date.now();
+      const entryFile = 'deck.html';
+      const dir = projectDir(PROJECTS_DIR, id);
+      await fs.promises.mkdir(dir, { recursive: true });
+      const projectName =
+        typeof name === 'string' && name.trim()
+          ? name.trim()
+          : deck.meta.tema?.trim() || path.basename(normalizedPath);
+      await fs.promises.writeFile(path.join(dir, entryFile), html, 'utf8');
+      await fs.promises.writeFile(
+        path.join(dir, `${entryFile}.artifact.json`),
+        JSON.stringify(
+          {
+            version: 1,
+            kind: 'deck',
+            title: projectName,
+            entry: entryFile,
+            renderer: 'deck-html',
+            status: 'complete',
+            exports: ['html', 'pdf', 'zip'],
+            createdAt: new Date(now).toISOString(),
+            updatedAt: new Date(now).toISOString(),
+            metadata: { source: 'carousel' },
+          },
+          null,
+          2,
+        ),
+        'utf8',
+      );
+      // Provenance: keep the source contract next to the deck so the piece
+      // can be re-rendered or diffed against later edits.
+      await fs.promises.writeFile(path.join(dir, 'slides.json'), slidesRaw, 'utf8');
+
+      const project = insertProject(db, {
+        id,
+        name: projectName,
+        skillId: null,
+        designSystemId: null,
+        pendingPrompt: null,
+        metadata: {
+          kind: 'prototype',
+          importedFrom: 'carousel',
+          entryFile,
+          sourceDir: normalizedPath,
+        },
+        createdAt: now,
+        updatedAt: now,
+      });
+      const cid = randomId();
+      insertConversation(db, {
+        id: cid,
+        projectId: id,
+        title: `Carrossel: ${projectName}`,
+        createdAt: now,
+        updatedAt: now,
+      });
+      setTabs(db, id, [entryFile], entryFile);
+      res.json({ project, conversationId: cid, entryFile, slides: deck.slides.length });
+    } catch (err: any) {
+      sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+    }
+  });
 
   // Import an existing local folder as a project. The user picks a folder
   // and OD works inside it directly: every write goes to metadata.baseDir.

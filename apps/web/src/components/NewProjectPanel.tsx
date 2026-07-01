@@ -19,6 +19,7 @@ import type {
 
 import { useT } from '../i18n';
 import type { Dict } from '../i18n/types';
+import { pickLocalFolderPath } from '../state/projects';
 import { fetchPromptTemplate, openFolderDialog } from '../providers/registry';
 import { isStoredMediaProviderEntryPresent } from '../state/config';
 import { isMediaProviderPickerReady } from '../media/provider-readiness';
@@ -141,6 +142,10 @@ interface Props {
   // Local-server flow: the daemon-owned native folder picker returns the
   // selected baseDir, then the renderer POSTs `/api/import/folder`.
   onImportFolder?: (baseDir: string) => Promise<void> | void;
+  // Carousel piece import: picks the folder holding slides.json (V02/V03
+  // contract) and POSTs `/api/import/carousel`; the daemon materializes
+  // the deck project without touching the source folder.
+  onImportCarousel?: (baseDir: string) => Promise<void> | void;
   // Host flow: the desktop main process owns the picker dialog and
   // the import call atomically (`pickAndImport` IPC). The renderer
   // never sees the path or the HMAC token; it only receives the
@@ -266,6 +271,7 @@ export function NewProjectPanel({
   onCreate,
   onImportClaudeDesign,
   onImportFolder,
+  onImportCarousel,
   onImportFolderResponse,
   mediaProviders,
   connectors,
@@ -280,6 +286,10 @@ export function NewProjectPanel({
   const [importing, setImporting] = useState(false);
   const [importZipError, setImportZipError] = useState<
     { message: string; details?: string } | null
+  >(null);
+  const [carouselImporting, setCarouselImporting] = useState(false);
+  const [carouselImportError, setCarouselImportError] = useState<
+    { message: string } | null
   >(null);
   const [workingDir, setWorkingDir] = useState<string | null>(null);
   const [workingDirToken, setWorkingDirToken] = useState<string | null>(null);
@@ -783,6 +793,23 @@ export function NewProjectPanel({
     onImportFolderResponse,
   });
 
+  async function handleImportCarousel() {
+    if (!onImportCarousel) return;
+    setCarouselImportError(null);
+    setCarouselImporting(true);
+    try {
+      const selectedPath = await pickLocalFolderPath();
+      if (!selectedPath) return;
+      await onImportCarousel(selectedPath);
+    } catch (err) {
+      setCarouselImportError({
+        message: err instanceof Error ? err.message : 'Failed to import carousel',
+      });
+    } finally {
+      setCarouselImporting(false);
+    }
+  }
+
   return (
     <div className="newproj" data-testid="new-project-panel">
       <div className={`newproj-tabs-shell${tabScroll.left ? ' can-left' : ''}${tabScroll.right ? ' can-right' : ''}`}>
@@ -1091,6 +1118,23 @@ export function NewProjectPanel({
             </button>
           </div>
         ) : null}
+        {onImportCarousel ? (
+          <div className="newproj-open-folder">
+            <button
+              type="button"
+              className="ghost newproj-import"
+              disabled={carouselImporting}
+              onClick={() => void handleImportCarousel()}
+            >
+              <Icon name="import" size={13} />
+              <span>
+                {carouselImporting
+                  ? t('newproj.importingCarousel')
+                  : t('newproj.importCarousel')}
+              </span>
+            </button>
+          </div>
+        ) : null}
       </div>
       <div className="newproj-footer">{t('newproj.privacyFooter')}</div>
       {importZipError ? (
@@ -1107,6 +1151,13 @@ export function NewProjectPanel({
           details={folderImport.error.details ?? null}
           ttlMs={6000}
           onDismiss={folderImport.clearError}
+        />
+      ) : null}
+      {carouselImportError ? (
+        <Toast
+          message={carouselImportError.message}
+          ttlMs={6000}
+          onDismiss={() => setCarouselImportError(null)}
         />
       ) : null}
       {workingDirError ? (

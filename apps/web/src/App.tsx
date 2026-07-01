@@ -90,6 +90,7 @@ import {
   deleteProject as deleteProjectApi,
   duplicateProject,
   getProject,
+  importCarouselProject,
   importClaudeDesignZip,
   importFolderProject,
   listProjects,
@@ -1738,6 +1739,17 @@ function AppInner() {
     });
   }, [rememberLocalProject]);
 
+  const handleImportCarousel = useCallback(async (baseDir: string) => {
+    const result = await importCarouselProject(baseDir);
+    rememberLocalProject(result.project.id);
+    setProjects((curr) => [result.project, ...curr.filter((p) => p.id !== result.project.id)]);
+    navigate({
+      kind: 'project',
+      projectId: result.project.id,
+      fileName: result.entryFile,
+    });
+  }, [rememberLocalProject]);
+
   // PR #974: on desktop, the host bridge owns the picker and import POST
   // atomically. The renderer never sees the path, token, or daemon DTO;
   // it receives host-owned project identifiers and refreshes project state
@@ -2348,6 +2360,7 @@ function AppInner() {
         onCreatePluginShareProject={handleCreatePluginShareProject}
         onImportClaudeDesign={handleImportClaudeDesign}
         onImportFolder={handleImportFolder}
+        onImportCarousel={handleImportCarousel}
         onImportFolderResponse={handleImportFolderResponse}
         onOpenProject={handleOpenProject}
         onOpenLiveArtifact={handleOpenLiveArtifact}

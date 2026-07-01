@@ -261,6 +261,34 @@ export async function importFolderProject(
   return (await resp.json()) as ImportFolderResponse;
 }
 
+export interface ImportCarouselResponse {
+  project: Project;
+  conversationId: string;
+  entryFile: string;
+  slides: number;
+}
+
+// Importa uma peça de carrossel (pasta com slides.json, contrato V02/V03).
+// O daemon materializa o deck em PROJECTS_DIR — a pasta de origem não é tocada.
+export async function importCarouselProject(
+  baseDir: string,
+): Promise<ImportCarouselResponse> {
+  const resp = await fetch('/api/import/carousel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ baseDir }),
+  });
+  if (!resp.ok) {
+    let message = 'Failed to import carousel';
+    try {
+      const body = await resp.json();
+      if (body?.error?.message) message = body.error.message;
+    } catch { /* use default message */ }
+    throw new Error(message);
+  }
+  return (await resp.json()) as ImportCarouselResponse;
+}
+
 export async function importClaudeDesignZip(
   file: File,
 ): Promise<{ project: Project; conversationId: string; entryFile: string }> {

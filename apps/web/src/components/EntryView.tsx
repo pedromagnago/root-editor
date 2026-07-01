@@ -115,6 +115,7 @@ interface Props {
     file: File,
   ) => Promise<ImportClaudeDesignOutcome | void> | ImportClaudeDesignOutcome | void;
   onImportFolder?: (baseDir: string) => Promise<void> | void;
+  onImportCarousel?: (baseDir: string) => Promise<void> | void;
   onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
   onOpenProject: (id: string) => Promise<boolean> | boolean | void;
   onOpenLiveArtifact: (projectId: string, artifactId: string) => void;
@@ -259,6 +260,7 @@ export function EntryView({
   onCreatePluginShareProject,
   onImportClaudeDesign,
   onImportFolder,
+  onImportCarousel,
   onImportFolderResponse,
   onOpenProject,
   onOpenLiveArtifact,
@@ -376,6 +378,7 @@ export function EntryView({
       onCreatePluginShareProject={onCreatePluginShareProject}
       onImportClaudeDesign={onImportClaudeDesign}
       {...(onImportFolder ? { onImportFolder } : {})}
+      {...(onImportCarousel ? { onImportCarousel } : {})}
       {...(onImportFolderResponse ? { onImportFolderResponse } : {})}
       onOpenProject={onOpenProject}
       onOpenLiveArtifact={onOpenLiveArtifact}
