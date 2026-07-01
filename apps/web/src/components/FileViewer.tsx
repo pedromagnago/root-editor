@@ -85,6 +85,7 @@ import {
   exportProjectAsZip,
   exportProjectImageDataUrl,
   exportProjectScreenshotPdf,
+  exportProjectSlidesZip,
   copyImageDataUrlToClipboard,
   exportReactComponentAsHtml,
   exportReactComponentAsZip,
@@ -5305,6 +5306,7 @@ function HtmlViewer({
       | 'zip'
       | 'html'
       | 'image'
+      | 'slides'
       | 'markdown'
       | 'template'
       | 'share_link'
@@ -5347,7 +5349,7 @@ function HtmlViewer({
         { requestId },
       );
     };
-    const toastFormats = new Set(['pdf', 'pptx', 'zip', 'html', 'image', 'markdown']);
+    const toastFormats = new Set(['pdf', 'pptx', 'zip', 'html', 'image', 'slides', 'markdown']);
     // Programmatic exports compute in-browser and can take a while (one render
     // per deck slide), so the loading toast ticks every second with elapsed time
     // and — once at least one slide is captured — a live ETA derived from the
@@ -5806,6 +5808,7 @@ function HtmlViewer({
   const templateDescriptionId = useId();
   const imageExportTitleId = useId();
   const pptxExportTitleId = useId();
+  const slidesExportTitleId = useId();
   // Opt back into the legacy inline-asset srcDoc path via `?forceInline=1`
   // on the host page. Lets users escape-hatch around the URL-load default
   // for non-deck HTML that depends on the in-iframe localStorage shim.
@@ -5908,6 +5911,12 @@ function HtmlViewer({
   const [imageExportError, setImageExportError] = useState<string | null>(null);
   const [pptxExportModalOpen, setPptxExportModalOpen] = useState(false);
   const [pptxExportMode, setPptxExportMode] = useState<'editable' | 'screenshot'>('editable');
+  // "Baixar slides do carrossel": one PNG per slide, zipped, at the chosen output
+  // width. 1080 = Instagram carousel (1080×1350 at the deck's 4:5 authoring);
+  // 2160 = retina 2×. The backend derives a deterministic deviceScaleFactor from
+  // the authored slide width, so the pixel size never depends on the machine.
+  const [slidesExportModalOpen, setSlidesExportModalOpen] = useState(false);
+  const [slidesExportWidth, setSlidesExportWidth] = useState<1080 | 2160>(1080);
   const imageExportSnapshotDataUrlRef = useRef<string | null>(null);
   // Threads the share-popover click → artifact_export_result(image) pair, the
   // same correlation other export formats get via fireShareExport. The image
@@ -10262,6 +10271,27 @@ function HtmlViewer({
                       <span>{t('fileViewer.exportPptx')}</span>
                     </button>
                   ) : null}
+                  {showPptxExport ? (
+                    <button
+                      type="button"
+                      className="share-menu-item"
+                      role="menuitem"
+                      disabled={!canPptx}
+                      title={
+                        streaming
+                          ? t('fileViewer.exportPptxBusy')
+                          : t('fileViewer.exportSlidesHint')
+                      }
+                      onClick={() => {
+                        setDownloadMenuOpen(false);
+                        setSlidesExportWidth(1080);
+                        setSlidesExportModalOpen(true);
+                      }}
+                    >
+                      <span className="share-menu-icon"><RemixIcon name="gallery-line" size={15} /></span>
+                      <span>{t('fileViewer.exportSlides')}</span>
+                    </button>
+                  ) : null}
                   {showImageExport ? (
                     <button
                       type="button"
@@ -10809,6 +10839,93 @@ function HtmlViewer({
                 }}
               >
                 {t('fileViewer.exportPptxConfirm')}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      ) : null}
+      {slidesExportModalOpen && typeof document !== 'undefined' ? createPortal(
+        <div className="modal-backdrop viewer-modal-backdrop image-export-backdrop" role="presentation">
+          <div
+            className="modal deploy-modal image-export-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={slidesExportTitleId}
+          >
+            <div className="modal-head">
+              <div className="kicker">SLIDES</div>
+              <h2 id={slidesExportTitleId}>{t('fileViewer.exportSlides')}</h2>
+              <p className="subtitle">{t('fileViewer.exportSlidesModalSubtitle')}</p>
+            </div>
+            <div className="deploy-form image-export-form">
+              <fieldset className="image-export-format-field">
+                <legend>{t('fileViewer.exportSlidesResolutionLabel')}</legend>
+                <div className="pptx-export-mode-options">
+                  {([
+                    {
+                      value: 1080 as const,
+                      title: t('fileViewer.exportSlides1080'),
+                      hint: t('fileViewer.exportSlides1080Hint'),
+                      recommended: true,
+                    },
+                    {
+                      value: 2160 as const,
+                      title: t('fileViewer.exportSlides2160'),
+                      hint: t('fileViewer.exportSlides2160Hint'),
+                      recommended: false,
+                    },
+                  ]).map((opt) => (
+                    <label
+                      key={opt.value}
+                      className={`pptx-export-mode-option${slidesExportWidth === opt.value ? ' active' : ''}`}
+                    >
+                      <input
+                        type="radio"
+                        name="slides-export-resolution"
+                        value={opt.value}
+                        checked={slidesExportWidth === opt.value}
+                        onChange={() => setSlidesExportWidth(opt.value)}
+                      />
+                      <span className="pptx-export-mode-head">
+                        <span className="pptx-export-mode-title">{opt.title}</span>
+                        {opt.recommended ? (
+                          <span className="pptx-export-mode-badge">{t('fileViewer.exportPptxRecommended')}</span>
+                        ) : null}
+                      </span>
+                      <span className="pptx-export-mode-desc">{opt.hint}</span>
+                    </label>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
+            <div className="modal-foot">
+              <button
+                type="button"
+                className="ghost-link button-like"
+                onClick={() => setSlidesExportModalOpen(false)}
+              >
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                className="viewer-action primary"
+                disabled={!canPptx}
+                onClick={() => {
+                  const targetWidth = slidesExportWidth;
+                  setSlidesExportModalOpen(false);
+                  fireShareExport('slides', async () => {
+                    const res = await exportProjectSlidesZip({
+                      projectId,
+                      fileName: file.name,
+                      title: exportTitle,
+                      targetWidth,
+                    });
+                    if (!res.ok) throw new Error('error' in res ? res.error : t('fileViewer.exportSlidesNa'));
+                  });
+                }}
+              >
+                {t('fileViewer.exportSlidesConfirm')}
               </button>
             </div>
           </div>

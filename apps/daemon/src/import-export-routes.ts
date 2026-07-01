@@ -13,6 +13,7 @@ import {
   buildDeckRenderInput,
   buildScreenshotPdf,
   buildScreenshotPptx,
+  buildSlidesZip,
   decodeSlideDataUrls,
   readSlideFiles,
   type BuildDeckRenderInputOptions,
@@ -427,7 +428,7 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
 
   function screenshotRenderClientError(
     rendered: { ok: boolean; error?: string; errorCode?: string },
-    format: 'pptx' | 'pdf' | 'image',
+    format: 'pptx' | 'pdf' | 'image' | 'slides',
   ): { message: string; status: 400 | 422 } | null {
     if (rendered.ok) return null;
     if (rendered.errorCode === 'NO_SLIDES' || (format === 'pptx' && isNoSlideDeckRenderError(rendered))) {
@@ -458,13 +459,14 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
   // daemon yet, so a web-only deployment gets a clear 501.
   async function handleScreenshotExport(
     res: Response,
-    format: 'pptx' | 'pdf' | 'image',
+    format: 'pptx' | 'pdf' | 'image' | 'slides',
     projectId: string,
     body: any,
   ) {
     let renderOutputDir: string | null = null;
     try {
-      const { fileName, title, index, imageFormat, width, height } = body || {};
+      const { fileName, title, index, imageFormat, width, height, deviceScaleFactor, targetWidth } =
+        body || {};
       if (typeof fileName !== 'string' || fileName.length === 0) {
         return sendApiError(res, 400, 'BAD_REQUEST', 'fileName required');
       }
@@ -476,6 +478,18 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
       }
       if (height != null && (typeof height !== 'number' || !Number.isFinite(height) || height <= 0)) {
         return sendApiError(res, 400, 'BAD_REQUEST', 'height must be a positive number');
+      }
+      if (
+        deviceScaleFactor != null &&
+        (typeof deviceScaleFactor !== 'number' || !Number.isFinite(deviceScaleFactor) || deviceScaleFactor <= 0)
+      ) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'deviceScaleFactor must be a positive number');
+      }
+      if (
+        targetWidth != null &&
+        (typeof targetWidth !== 'number' || !Number.isFinite(targetWidth) || targetWidth <= 0)
+      ) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'targetWidth must be a positive number');
       }
       if (typeof desktopSlideRenderer !== 'function') {
         if (format === 'image' && typeof desktopArtifactExporter === 'function') {
@@ -560,6 +574,8 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
       if (typeof title === 'string') renderOptions.title = title;
       if (typeof width === 'number') renderOptions.width = width;
       if (typeof height === 'number') renderOptions.height = height;
+      if (typeof deviceScaleFactor === 'number') renderOptions.deviceScaleFactor = deviceScaleFactor;
+      if (typeof targetWidth === 'number') renderOptions.targetWidth = targetWidth;
       // Page-vs-deck is the caller's call, not a `.slide`-count guess: PPTX is
       // deck-only; image/PDF take the web's `effectiveDeck` signal so an ordinary
       // page that happens to contain `.slide` markup is still captured full-page.
@@ -568,6 +584,11 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
         // Editable PPTX (native shapes/text via dom-to-pptx) vs the default
         // screenshot PPTX (one image per slide).
         if (body?.editable === true) renderOptions.editable = true;
+      } else if (format === 'slides') {
+        // "Baixar slides do carrossel" = one PNG per slide zipped. Force deck so
+        // the renderer returns per-slide files (slideFiles[]); leaving stitch and
+        // index unset is what makes it emit N images instead of one stitched strip.
+        renderOptions.deck = true;
       } else if (typeof body?.deck === 'boolean') {
         renderOptions.deck = body.deck;
       }
@@ -731,6 +752,13 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
         buffer = await buildScreenshotPdf(images);
         contentType = 'application/pdf';
         ext = 'pdf';
+      } else if (format === 'slides') {
+        // Carousel slides: each slide as its own PNG, zipped. Unlike `image`
+        // (one stitched strip), this keeps them separate so the user can upload
+        // one per Instagram card at the requested resolution.
+        buffer = await buildSlidesZip(images, { baseName: defaultFilename });
+        contentType = 'application/zip';
+        ext = 'zip';
       } else {
         // image: exactly one image (the requested slide, stitched deck, or whole
         // page). A multi-image renderer result is a contract violation; never
@@ -947,6 +975,15 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
   // host-compositor snapshot, the size never depends on the preview pane.
   app.post('/api/projects/:id/export/image', async (req, res) => {
     await handleScreenshotExport(res, 'image', req.params.id, req.body);
+  });
+
+  // Carousel slides export: one pixel-perfect PNG per deck slide, zipped. The web
+  // "Baixar slides do carrossel" button posts here with a `targetWidth` (1080 for
+  // Instagram, 2160 for retina); the desktop renderer derives a deterministic
+  // deviceScaleFactor from the authored slide width so every machine yields the
+  // same pixel size. Deck-only in practice (handleScreenshotExport forces deck).
+  app.post('/api/projects/:id/export/slides', async (req, res) => {
+    await handleScreenshotExport(res, 'slides', req.params.id, req.body);
   });
 
   // Generic programmatic export (PDF / image / PPTX) for the `od export` CLI and

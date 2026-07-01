@@ -3441,6 +3441,16 @@ export interface Dict {
   'fileViewer.exportPptxScreenshot': string;
   'fileViewer.exportPptxScreenshotHint': string;
   'fileViewer.exportPptxConfirm': string;
+  'fileViewer.exportSlides': string;
+  'fileViewer.exportSlidesHint': string;
+  'fileViewer.exportSlidesModalSubtitle': string;
+  'fileViewer.exportSlidesResolutionLabel': string;
+  'fileViewer.exportSlides1080': string;
+  'fileViewer.exportSlides1080Hint': string;
+  'fileViewer.exportSlides2160': string;
+  'fileViewer.exportSlides2160Hint': string;
+  'fileViewer.exportSlidesConfirm': string;
+  'fileViewer.exportSlidesNa': string;
   'fileViewer.exportPptxRecommended': string;
   'fileViewer.exportingProgress': string;
   'fileViewer.exportSlideProgress': string;

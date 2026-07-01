@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import JSZip from 'jszip';
 import { PDFDocument } from 'pdf-lib';
 import * as PptxGenJSModule from 'pptxgenjs';
 import type { DesktopRenderSlidesInput } from '@open-design/sidecar-proto';
@@ -35,6 +36,16 @@ export interface BuildDeckRenderInputOptions {
   stitch?: boolean;
   width?: number;
   height?: number;
+  // Forces the capture's device-pixel ratio so the exported pixel size is
+  // identical on every machine (retina 2x vs 1x would otherwise diverge). Set to
+  // target/authored (e.g. 1080/420 = 2.5714) for a deterministic export.
+  deviceScaleFactor?: number;
+  // Ergonomic alternative to deviceScaleFactor: the desired output width in px
+  // per slide. The desktop renderer measures the authored slide width and
+  // derives the DSF (targetWidth / authoredWidth). Ignored when deviceScaleFactor
+  // is set. Used by the "download carousel slides" export to hit a concrete
+  // resolution (1080 Instagram, 2160 retina) without knowing the canvas size.
+  targetWidth?: number;
   // Page mode only: split a long non-deck page into one image per viewport
   // (multi-page PDF). Ignored when the artifact renders as a deck.
   paginate?: boolean;
@@ -78,6 +89,8 @@ export async function buildDeckRenderInput(
       ...(options.paginate == null ? {} : { paginate: options.paginate }),
       ...(options.width == null ? {} : { width: options.width }),
       ...(options.height == null ? {} : { height: options.height }),
+      ...(options.deviceScaleFactor == null ? {} : { deviceScaleFactor: options.deviceScaleFactor }),
+      ...(options.targetWidth == null ? {} : { targetWidth: options.targetWidth }),
     },
   };
 }
@@ -194,6 +207,29 @@ export async function buildScreenshotPdf(images: SlideImage[]): Promise<Buffer> 
   }
   const bytes = await pdf.save();
   return Buffer.from(bytes);
+}
+
+/**
+ * Packs per-slide images into a .zip — one file per slide, zero-padded and
+ * ordered (`slide-01.png`, `slide-02.png`, …). This is the carousel export: the
+ * user gets each Instagram slide as a separate image at the requested
+ * resolution, ready to upload, instead of one stitched strip or a PPTX/PDF.
+ */
+export async function buildSlidesZip(
+  images: SlideImage[],
+  opts: { baseName?: string } = {},
+): Promise<Buffer> {
+  if (images.length === 0) throw new Error('no slides to export');
+  const zip = new JSZip();
+  const width = Math.max(2, String(images.length).length);
+  const base = (opts.baseName || 'slide').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '') || 'slide';
+  images.forEach((img, i) => {
+    const n = String(i + 1).padStart(width, '0');
+    const ext = img.jpeg ? 'jpg' : 'png';
+    zip.file(`${base}-${n}.${ext}`, img.buffer);
+  });
+  const out = await zip.generateAsync({ type: 'nodebuffer' });
+  return Buffer.isBuffer(out) ? out : Buffer.from(out as ArrayBuffer);
 }
 
 function displayTitle(title: string | undefined, fileName: string): string {

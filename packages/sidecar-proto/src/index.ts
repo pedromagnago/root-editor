@@ -283,6 +283,18 @@ export type DesktopRenderSlidesInput = {
   // fall back to renderer defaults.
   width?: number;
   height?: number;
+  // Forces the capture's device-pixel ratio, independent of the physical
+  // display's DPR. Without it the exported pixel size varies per machine (retina
+  // 2x vs ordinary 1x). Set to target/authored (e.g. 1080/420 = 2.5714) so every
+  // machine exports identical pixel dimensions. Deck capture only.
+  deviceScaleFactor?: number;
+  // Deck only, ergonomic alternative to deviceScaleFactor: the desired output
+  // WIDTH in px per slide. The renderer measures the deck's authored slide width
+  // and derives deviceScaleFactor = targetWidth / authoredWidth, so the caller
+  // can request a concrete resolution (1080 for Instagram, 2160 for retina)
+  // without knowing the authored canvas size. Ignored when deviceScaleFactor is
+  // set explicitly.
+  targetWidth?: number;
   // When set, the renderer writes each rendered image to a file inside this
   // directory and returns the file paths in `slideFiles` instead of base64
   // data URLs in `slides`. The daemon (which owns the data root) creates and
@@ -752,7 +764,7 @@ function normalizeDesktopExportPdfInput(input: unknown): DesktopExportPdfInput {
 
 function normalizeDesktopRenderSlidesInput(input: unknown): DesktopRenderSlidesInput {
   const value = assertObject(input, "desktop render slides input");
-  assertKnownKeys(value, ["baseHref", "deck", "editable", "height", "html", "index", "outputDir", "pageImageFormat", "stitch", "paginate", "width"], "desktop render slides input");
+  assertKnownKeys(value, ["baseHref", "deck", "deviceScaleFactor", "editable", "height", "html", "index", "outputDir", "pageImageFormat", "stitch", "paginate", "targetWidth", "width"], "desktop render slides input");
   if (value.deck != null && typeof value.deck !== "boolean") {
     throw new Error("desktop render slides deck must be a boolean");
   }
@@ -792,6 +804,8 @@ function normalizeDesktopRenderSlidesInput(input: unknown): DesktopRenderSlidesI
     ...(value.paginate == null ? {} : { paginate: value.paginate }),
     ...(value.width == null ? {} : { width: normalizeOptionalPositiveNumber(value.width, "desktop render slides width") }),
     ...(value.height == null ? {} : { height: normalizeOptionalPositiveNumber(value.height, "desktop render slides height") }),
+    ...(value.deviceScaleFactor == null ? {} : { deviceScaleFactor: normalizeOptionalPositiveNumber(value.deviceScaleFactor, "desktop render slides deviceScaleFactor") }),
+    ...(value.targetWidth == null ? {} : { targetWidth: normalizeOptionalPositiveNumber(value.targetWidth, "desktop render slides targetWidth") }),
   };
 }
 

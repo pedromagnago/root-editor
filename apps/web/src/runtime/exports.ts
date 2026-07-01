@@ -934,6 +934,61 @@ export async function exportProjectAsPptx(opts: {
   }
 }
 
+// Carousel slides export: the daemon renders each deck slide to its OWN
+// pixel-perfect PNG at the requested output width (`targetWidth` — 1080 for
+// Instagram, 2160 for retina) and zips them, one file per slide, ready to upload
+// one per carousel card. The desktop renderer derives a deterministic
+// deviceScaleFactor from the authored slide width, so the pixel size is identical
+// on every machine (no retina-vs-1x divergence). Differs from the `image` export,
+// which stitches the whole deck into one long strip. Tri-state like the PPTX/PDF
+// exports so the caller can tell a missing off-screen renderer (501/transport)
+// from a semantic failure.
+export async function exportProjectSlidesZip(opts: {
+  projectId: string;
+  fileName: string;
+  title?: string;
+  targetWidth?: number;
+}): Promise<ProjectScreenshotExportResult> {
+  const url = `/api/projects/${encodeURIComponent(opts.projectId)}/export/slides`;
+  let resp: Response;
+  try {
+    resp = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        fileName: opts.fileName,
+        deck: true,
+        ...(opts.title ? { title: opts.title } : {}),
+        ...(typeof opts.targetWidth === 'number' ? { targetWidth: opts.targetWidth } : {}),
+      }),
+    });
+  } catch {
+    // Transport-level failure (offline, daemon down) — genuinely unavailable.
+    return { ok: false, unavailable: true };
+  }
+  if (!resp.ok) {
+    if (resp.status === 501) return { ok: false, unavailable: true };
+    let message = `slides export failed (${resp.status})`;
+    try {
+      const err = await resp.json();
+      if (err?.error?.message) message = String(err.error.message);
+    } catch {
+      // non-JSON error body; keep the status-based message
+    }
+    return { ok: false, error: message };
+  }
+  try {
+    const blob = await resp.blob();
+    const base = opts.fileName.replace(/^.*\//, '').replace(/\.html?$/i, '');
+    const slug = safeFilename(opts.title || base, 'deck');
+    const fromHeader = filenameFromContentDisposition(resp);
+    triggerDownload(blob, fromHeader || `${slug}.zip`);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'slides export download failed' };
+  }
+}
+
 // Whether an HTML artifact carries a structured deck runtime for EXPORT
 // purposes, beyond explicit project/file metadata. Runtime-managed decks render
 // slides through a custom element (e.g. `<deck-stage>` with slotted

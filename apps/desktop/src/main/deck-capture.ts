@@ -261,6 +261,41 @@ export async function renderDeckSlides(
     }
     const dbg = deckDbgAttached ? deckDbg : null;
     try {
+      // Deterministic pixel size: force the capture's device-pixel ratio to the
+      // requested value instead of inheriting the physical display's DPR (retina
+      // 2x vs ordinary 1x would otherwise export different pixel dimensions per
+      // machine). The override lives on the CDP session, so it REQUIRES the
+      // debugger: the capturePage fallback cannot force a DPR, and honoring the
+      // request there would silently reintroduce the non-determinism we're
+      // eliminating — so fail fast instead. captureDeckSlide keeps clip.scale:1;
+      // this override supplies the scale (stage.w x DSF by stage.h x DSF px).
+      //
+      // targetWidth is the ergonomic form: the caller asks for a concrete output
+      // width (e.g. 1080) and we derive the DSF from the measured authored slide
+      // width, so the export lands at exactly targetWidth px regardless of the
+      // deck's authored canvas size. An explicit deviceScaleFactor always wins.
+      const effectiveDeviceScaleFactor =
+        input.deviceScaleFactor != null
+          ? input.deviceScaleFactor
+          : input.targetWidth != null && stage.w > 0
+            ? input.targetWidth / stage.w
+            : null;
+      if (effectiveDeviceScaleFactor != null) {
+        if (!dbg) {
+          return finish({
+            ok: false,
+            error: "deterministic export requires the CDP debugger, which could not attach",
+            errorCode: "RENDER_FAILED",
+          });
+        }
+        await dbg.sendCommand("Emulation.setDeviceMetricsOverride", {
+          width: stage.w,
+          height: stage.h,
+          deviceScaleFactor: effectiveDeviceScaleFactor,
+          mobile: false,
+        });
+      }
+
       // Image export of a deck wants every slide stitched top-to-bottom into one
       // tall image (the "whole deck as one picture").
       if (input.stitch) {
@@ -1339,7 +1374,6 @@ function restackActiveSlide(slideSelector: string, index: number, w: number, h: 
     .filter((el) => !(el as HTMLElement).closest(".mini-slide, .overview, .notes-overlay, .thumb"));
   const el = slides[index] as HTMLElement | undefined;
   if (!el) return;
-  const rect = el.getBoundingClientRect();
   const layer = document.createElement("div");
   layer.id = "__od_export_active_slide_capture";
   layer.setAttribute("aria-hidden", "true");
@@ -1363,7 +1397,6 @@ function restackActiveSlide(slideSelector: string, index: number, w: number, h: 
     "top:0",
     `width:${w}px`,
     `height:${h}px`,
-    `transform:${activeSlideCaptureOffsetTransform(rect)}`,
     "transform-origin:top left",
   ].join("!important;") + "!important";
 
@@ -1375,4 +1408,14 @@ function restackActiveSlide(slideSelector: string, index: number, w: number, h: 
   offset.appendChild(clone);
   layer.appendChild(offset);
   document.body.appendChild(layer);
+  // Reparenting the clone out of its deck drops any ancestor-driven offset (a
+  // translated carousel strip) AND any normal-flow stacking offset (slides laid
+  // out one below the next, as in a static multi-slide export document), but
+  // keeps the slide's OWN transform. Measure where the clone actually landed and
+  // counter-translate that residual so it sits at the layer's top-left. Using
+  // the clone's post-reparent rect — not the original element's pre-reparent
+  // rect — is what makes a normal-flow stacked slide (residual ~0) capture in
+  // place instead of being shoved off-screen by its original flow offset.
+  const landed = clone.getBoundingClientRect();
+  offset.style.setProperty("transform", activeSlideCaptureOffsetTransform(landed), "important");
 }

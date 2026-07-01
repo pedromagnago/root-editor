@@ -262,6 +262,7 @@ export type TrackingExportFormat =
   | 'zip'
   | 'html'
   | 'image'
+  | 'slides'
   | 'markdown'
   | 'template'
   | 'share_link'
