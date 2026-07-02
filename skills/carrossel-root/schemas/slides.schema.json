@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "maquina-carrossel/slides.schema.json",
+  "title": "Carrossel — contrato de slides para o render",
+  "description": "Saída do redator/designer-render que alimenta render.mjs. O render é determinístico: só desenha o que está aqui. Regras estruturais validadas em render.mjs: exatamente 1 capa (ordem 1), exatamente 1 fechamento (último), ordem sequencial 1..N sem buracos, cta não-nulo só no fechamento.",
+  "type": "object",
+  "required": ["meta", "slides"],
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["handle", "framework"],
+      "additionalProperties": true,
+      "properties": {
+        "handle": { "type": "string", "description": "@handle da marca (watermark/IG-frame)" },
+        "marca": { "type": "string", "description": "slug da marca" },
+        "tipo_badge": { "type": "string", "description": "badge da capa (ex.: TENDÊNCIA, ANÁLISE, CASE, ALERTA)" },
+        "data": { "type": "string", "description": "DD/MM/AAAA, opcional" },
+        "framework": {
+          "type": "string",
+          "enum": ["armadilha", "raio-x", "dados-decidem", "caso-pratica", "nicho-attack"]
+        },
+        "tema": { "type": "string" }
+      }
+    },
+    "brand_pack_ref": {
+      "type": "string",
+      "description": "caminho do brand.json (relativo à pasta da peça ou absoluto). Se ausente, render.mjs usa tokens default."
+    },
+    "slides": {
+      "type": "array",
+      "minItems": 4,
+      "maxItems": 10,
+      "items": { "$ref": "#/definitions/slide" }
+    }
+  },
+  "definitions": {
+    "slide": {
+      "type": "object",
+      "required": ["ordem", "bg", "papel"],
+      "additionalProperties": false,
+      "properties": {
+        "ordem": { "type": "integer", "minimum": 1 },
+        "bg": { "type": "string", "enum": ["light", "dark", "gradient", "alert"] },
+        "papel": { "type": "string", "description": "capa | conteudo | fechamento, ou rótulo do framework (hook, prova, cta...)" },
+        "tipo": { "type": "string", "enum": ["capa", "conteudo", "fechamento"], "description": "semântica estrutural (default inferido: 1=capa, último=fechamento)" },
+        "tag": { "type": "string", "description": "label do topo do slide (uppercase)" },
+        "headline": { "type": "string", "description": "headline do slide; na capa, a headline curta (6–8 palavras). Aceita <strong>/<em>." },
+        "blocos": {
+          "type": "array",
+          "maxItems": 2,
+          "items": { "type": "string" },
+          "description": "no máximo 2 blocos de texto. Aceita <strong>/<em>."
+        },
+        "componentes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/componente" }
+        },
+        "source": { "type": "string", "description": "texto do source-badge (Fonte: X, ano)" },
+        "cta": {
+          "type": ["object", "null"],
+          "description": "só no fechamento",
+          "additionalProperties": false,
+          "properties": {
+            "instrucao": { "type": "string" },
+            "palavra": { "type": "string" },
+            "beneficio": { "type": "string" }
+          }
+        },
+        "imagem": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "tipo": { "type": "string", "enum": ["none", "local"], "default": "none" },
+            "ref": { "type": ["string", "null"], "description": "caminho do arquivo de imagem (embutido em base64)" }
+          }
+        }
+      }
+    },
+    "componente": {
+      "type": "object",
+      "required": ["tipo"],
+      "properties": {
+        "tipo": {
+          "type": "string",
+          "enum": ["data-pill", "strike-pill", "insight-box", "feature-list", "numbered-steps", "table", "cta-button"]
+        },
+        "variante": { "type": "string", "enum": ["danger", "success", "neutral"] },
+        "number": { "type": "string" },
+        "label": { "type": "string" },
+        "before": { "type": "string" },
+        "after": { "type": "string" },
+        "icon": { "type": "string" },
+        "texto": { "type": "string" },
+        "fonte": { "type": "string" },
+        "itens": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "icon": { "type": "string" },
+              "titulo": { "type": "string" },
+              "texto": { "type": "string" }
+            }
+          }
+        },
+        "passos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "numero": { "type": "string" },
+              "titulo": { "type": "string" },
+              "texto": { "type": "string" }
+            }
+          }
+        },
+        "colunas": { "type": "array", "items": { "type": "string" } },
+        "linhas": { "type": "array", "items": { "type": "array", "items": { "type": "string" } } }
+      }
+    }
+  }
+}
