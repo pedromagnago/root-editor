@@ -51,12 +51,12 @@ export const RELEASE_PLATFORM_NAMESPACE_SUFFIXES = Object.freeze({
   win: "win",
 } as const satisfies Record<ReleasePlatform, string>);
 
-const PRODUCT_NAME = "Open Design";
+const PRODUCT_NAME = "Root Editor";
 const DEFAULT_NAMESPACE = "open-design";
 
 const descriptors: Record<ReleaseChannel, ReleaseChannelDescriptor> = {
   beta: {
-    appId: "io.open-design.desktop.beta",
+    appId: "com.operacaoroot.rooteditor.beta",
     baseVersionField: "baseVersion",
     channel: "beta",
     displayLabel: "Beta",
@@ -68,7 +68,7 @@ const descriptors: Record<ReleaseChannel, ReleaseChannelDescriptor> = {
     storagePrefix: "beta",
   },
   betas: {
-    appId: "io.open-design.desktop.betas",
+    appId: "com.operacaoroot.rooteditor.betas",
     baseVersionField: "baseVersion",
     channel: "betas",
     counterField: "releaseNumber",
@@ -80,7 +80,7 @@ const descriptors: Record<ReleaseChannel, ReleaseChannelDescriptor> = {
     storagePrefix: "betas",
   },
   prerelease: {
-    appId: "io.open-design.desktop.prerelease",
+    appId: "com.operacaoroot.rooteditor.prerelease",
     baseVersionField: "baseVersion",
     channel: "prerelease",
     counterField: "releaseNumber",
@@ -92,7 +92,7 @@ const descriptors: Record<ReleaseChannel, ReleaseChannelDescriptor> = {
     storagePrefix: "prerelease",
   },
   preview: {
-    appId: "io.open-design.desktop.preview",
+    appId: "com.operacaoroot.rooteditor.preview",
     baseVersionField: "baseVersion",
     channel: "preview",
     counterField: "releaseNumber",
@@ -104,7 +104,7 @@ const descriptors: Record<ReleaseChannel, ReleaseChannelDescriptor> = {
     storagePrefix: "preview",
   },
   stable: {
-    appId: "io.open-design.desktop",
+    appId: "com.operacaoroot.rooteditor",
     baseVersionField: "baseVersion",
     channel: "stable",
     counterField: null,

@@ -87,7 +87,7 @@ export type QuestionFormOpenRequest = {
   submittedAnswers?: Record<string, string | string[]>;
 };
 
-const DISCORD_INVITE_URL = "https://discord.gg/mHAjSMV6gz";
+const COMMUNITY_URL = "https://github.com/pedromagnago/root-editor/discussions";
 
 interface ActionNotice {
   message: string;
@@ -250,7 +250,7 @@ function SkillPluginCandidateCard({
         { action },
       );
       setNotice({
-        message: `Open Design contribution task started for ${data?.path ?? "the draft"}.`,
+        message: `Root Editor contribution task started for ${data?.path ?? "the draft"}.`,
       });
     } catch (err) {
       setNotice({ message: err instanceof Error ? err.message : String(err) });
@@ -1925,21 +1925,21 @@ function AssistantFeedback({
             <p className="assistant-feedback-discord-note">
               Share what you made with the{" "}
               <a
-                href={DISCORD_INVITE_URL}
+                href={COMMUNITY_URL}
                 data-testid="assistant-feedback-discord-positive"
               >
-                Discord
+                GitHub
               </a>{" "}
               community, or drop a screenshot and tell us what worked well.
             </p>
           ) : (
             <p className="assistant-feedback-discord-note">
-              Share more context in{" "}
+              Share more context on{" "}
               <a
-                href={DISCORD_INVITE_URL}
+                href={COMMUNITY_URL}
                 data-testid="assistant-feedback-discord-negative"
               >
-                Discord
+                GitHub
               </a>{" "}
               so the team can understand what went wrong and follow up directly.
             </p>
@@ -2216,7 +2216,7 @@ function PluginActionPanel({
                   <span>
                     {actionBusy && busyKey === `contribute:${folder.path}`
                       ? "Sending..."
-                      : "Open Design PR"}
+                      : "Root Editor PR"}
                   </span>
                 </button>
                 {onRequestOpenFile ? (
@@ -2312,7 +2312,7 @@ function pathMatchesFolderFileBasename(
 }
 
 function hasPluginFinalActionHint(content: string): boolean {
-  return /\b(Add to My plugins|Open Design PR|Publish repo|plugin publish|ready to publish|ready to add)\b/i.test(
+  return /\b(Add to My plugins|Open Design PR|Root Editor PR|Publish repo|plugin publish|ready to publish|ready to add)\b/i.test(
     content,
   );
 }

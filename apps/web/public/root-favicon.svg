@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Root Editor">
+  <rect width="64" height="64" rx="14" fill="#070A08"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="12.5" fill="none" stroke="rgba(28,48,16,0.45)" stroke-width="3"/>
+  <text x="32" y="45" font-family="'JetBrains Mono', ui-monospace, Menlo, monospace" font-size="38" font-weight="700" text-anchor="middle" fill="#9BDB1F">R</text>
+</svg>

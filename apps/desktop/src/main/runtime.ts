@@ -25,7 +25,7 @@ import { renderDeckSlides } from "./deck-capture.js";
 import { openValidatedDirectory } from "./open-path.js";
 import { exportArtifact as exportArtifactFromHtml } from "./artifact-export.js";
 import { createElectronPdfTarget, exportPdfFromHtml, savePrintReadyDocumentAsPdf } from "./pdf-export.js";
-import { SPLASH_VIDEO_DATA_URL } from "./splash-video.js";
+import { SPLASH_BACKGROUND_COLOR, SPLASH_VIDEO_DATA_URL } from "./splash-video.js";
 import type { PrintReadyPdfOptions } from "./pdf-export.js";
 import type { DesktopUpdater } from "./updater.js";
 
@@ -226,17 +226,17 @@ export function signDesktopImportToken(
 
 const PENDING_POLL_MS = 120;
 const RUNNING_POLL_MS = 2000;
-// Minimum time the light splash window stays on screen before we reveal the main
-// window. It is sized to outlast the ~1.7s clip so the brand animation always
-// plays through. The splash is shown immediately and in parallel with the
+// Minimum time the splash window stays on screen before we reveal the main
+// window. Kept at the video-era duration so the brand moment still registers.
+// The splash is shown immediately and in parallel with the
 // daemon/web boot (see the packaged entry), so this time overlaps startup rather
-// than adding to it; the <video> holds on its final frame (it does not loop)
+// than adding to it; the static Root wordmark simply holds
 // while the runtime finishes coming up. See `createSplashWindow`.
 const MIN_SPLASH_MS = 2000;
 // While the splash is up, the real web app loads in a hidden main window. We
 // reveal it only once the web bundle reports it has actually mounted (it sets
 // `data-od-app-mounted="1"` on first paint of the real UI), so the user never
-// sees the web's own "Loading Open Design…" shell flash between the splash and
+// sees the web's own "Loading Root Editor…" shell flash between the splash and
 // the app. Poll cadence + a hard ceiling so a missing mount signal can never
 // strand the user on the splash forever.
 const WEB_MOUNT_POLL_MS = 80;
@@ -809,10 +809,10 @@ const MAC_WINDOW_CHROME_CSS = `
   }
 `;
 
-// Light-background startup splash shown while the web runtime boots. It plays
-// the brand intro clip once and then holds on its final settled logo frame until
-// the main window is ready. The clip is embedded as a base64 data URL so it
-// renders identically in dev and in packaged builds (see `splash-video.ts`).
+// Dark-background startup splash shown while the web runtime boots. It fades in
+// the static Root wordmark once and holds it until the main window is ready.
+// The wordmark is embedded as an SVG data URL so it renders identically in dev
+// and in packaged builds (see `splash-video.ts`).
 function createPendingHtml(): string {
   const start = splashStagePayload("starting");
   const initialPct = Math.max(0, Math.min(100, Math.round((start.step / start.total) * 100)));
@@ -820,11 +820,11 @@ function createPendingHtml(): string {
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>Open Design</title>
+    <title>Root Editor</title>
     <style>
       html,
       body {
-        background: #f2f4f5;
+        background: ${SPLASH_BACKGROUND_COLOR};
         height: 100%;
         margin: 0;
         overflow: hidden;
@@ -834,12 +834,15 @@ function createPendingHtml(): string {
         display: flex;
         justify-content: center;
       }
-      video {
-        background: #f2f4f5;
+      .splash-logo {
+        animation: splash-fade-in 700ms cubic-bezier(0.23, 1, 0.32, 1) both;
         height: auto;
-        max-height: 100%;
-        max-width: 100%;
-        width: auto;
+        max-width: 60%;
+        width: 340px;
+      }
+      @keyframes splash-fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
       .boot-stage {
         bottom: 56px;
@@ -893,14 +896,7 @@ function createPendingHtml(): string {
     </style>
   </head>
   <body>
-    <video
-      id="splash"
-      autoplay
-      muted
-      playsinline
-      disablepictureinpicture
-      src="${SPLASH_VIDEO_DATA_URL}"
-    ></video>
+    <img id="splash" class="splash-logo" src="${SPLASH_VIDEO_DATA_URL}" alt="" />
     <div class="boot-progress" aria-hidden="true">
       <div class="boot-progress-fill" id="boot-progress-fill" data-pct="${initialPct}" style="width: ${initialPct}%;"></div>
     </div>
@@ -908,17 +904,8 @@ function createPendingHtml(): string {
       <span class="boot-stage-step" id="boot-stage-step">${start.step}/${start.total}</span><span id="boot-stage-text">${start.label}</span><span class="boot-dots" aria-hidden="true"><span class="dot">.</span><span class="dot">.</span><span class="dot">.</span></span>
     </div>
     <script>
-      (function () {
-        var video = document.getElementById("splash");
-        if (!video) return;
-        var play = function () {
-          var attempt = video.play();
-          if (attempt && typeof attempt.catch === "function") attempt.catch(function () {});
-        };
-        video.addEventListener("loadedmetadata", function () { video.currentTime = 0; });
-        video.addEventListener("loadeddata", play);
-        play();
-      })();
+      // The splash is a static image now — no video playback to bootstrap; the
+      // hold duration lives in the main process (MIN_SPLASH_MS).
       // Accepts the structured { step, total, label } payload (and tolerates a
       // bare label string for back-compat). The step counter + progress bar give
       // a slow cold boot a sense of how far along it is; the bar only ever grows
@@ -998,7 +985,7 @@ const SPLASH_STAGE_SEQUENCE: readonly SplashBootStage[] = [
 ];
 
 const SPLASH_STAGE_LABELS: Record<SplashBootStage, string> = {
-  starting: "Starting Open Design",
+  starting: "Starting Root Editor",
   engine: "Starting the local engine",
   engineReady: "Local engine ready",
   interface: "Preparing the interface",
@@ -1101,8 +1088,8 @@ export type SplashWindowHandle = {
 };
 
 /**
- * Create and immediately show the light brand-splash window. The packaged entry
- * calls this BEFORE awaiting the daemon/web sidecars so the animation masks the
+ * Create and immediately show the dark brand-splash window. The packaged entry
+ * calls this BEFORE awaiting the daemon/web sidecars so the splash masks the
  * whole cold boot (no black no-window gap); the desktop runtime then adopts it
  * via `DesktopRuntimeOptions.splashWindow` + `splashStartedAt` and closes it
  * once the real app has mounted in the (initially hidden) main window. Frameless
@@ -1113,12 +1100,12 @@ export function createSplashWindow(): SplashWindowHandle {
   const startedAt = Date.now();
   const splash = new BrowserWindow({
     autoHideMenuBar: true,
-    backgroundColor: "#f2f4f5",
+    backgroundColor: SPLASH_BACKGROUND_COLOR,
     frame: false,
     height: 900,
     resizable: false,
     show: true,
-    title: "Open Design",
+    title: "Root Editor",
     width: 1280,
     webPreferences: {
       contextIsolation: true,
@@ -1782,7 +1769,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
 
   const consoleEntries: DesktopConsoleEntry[] = [];
   const petWindow = createDesktopPetWindow(preloadPath, options.osLocale);
-  const windowTitle = options.windowTitle ?? "Open Design";
+  const windowTitle = options.windowTitle ?? "Root Editor";
   const window = new BrowserWindow({
     height: 900,
     icon: resolveDesktopIconPath(),
@@ -1795,7 +1782,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
     // Starts hidden: the splash window is what the user sees while the real web
     // app loads in here. We reveal this window only once the app has actually
     // mounted (see `revealWhenReady` below), so there is never a flash of the
-    // web's own "Loading Open Design…" shell.
+    // web's own "Loading Root Editor…" shell.
     show: false,
     title: windowTitle,
     autoHideMenuBar: true,
@@ -1896,7 +1883,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
   const unsubscribeUpdater = options.updater?.subscribe(() => sendUpdaterStatus()) ?? (() => undefined);
   const requireMainWindowSender = (event: Electron.IpcMainInvokeEvent): void => {
     if (event.sender !== window.webContents) {
-      throw new Error("host IPC is only available to the main Open Design window");
+      throw new Error("host IPC is only available to the main Root Editor window");
     }
   };
   window.webContents.on("will-attach-webview", (event, webPreferences, params) => {
@@ -2176,8 +2163,8 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
 
   // Hold the splash until BOTH (a) the web bundle reports it has mounted — it
   // sets `data-od-app-mounted="1"` on first paint of the real UI — so we never
-  // reveal the web's own dark "Loading Open Design…" shell, and (b) the splash
-  // has been up at least MIN_SPLASH_MS so the brand clip plays through. A hard
+  // reveal the web's own dark "Loading Root Editor…" shell, and (b) the splash
+  // has been up at least MIN_SPLASH_MS so the brand moment registers. A hard
   // ceiling guarantees the user is never stranded on the splash if the mount
   // signal never arrives.
   const revealWhenReady = async (): Promise<void> => {
@@ -2195,7 +2182,7 @@ export async function createDesktopRuntime(options: DesktopRuntimeOptions): Prom
       await delay(WEB_MOUNT_POLL_MS);
     }
     // The real UI has mounted behind the splash; the only thing left is the
-    // minimum-hold so the brand clip plays through. Advance the counter to its
+    // minimum-hold so the brand moment registers. Advance the counter to its
     // final step so the user sees the boot reach completion, not stall at
     // "Opening your workspace".
     setSplashStage(splash, "finishing");

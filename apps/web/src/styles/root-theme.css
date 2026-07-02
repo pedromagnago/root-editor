@@ -1,0 +1,466 @@
+/* ============================================================
+   ROOT — reskin layer (brand.json / Camada 4)
+   Camada isolada: importada POR ÚLTIMO (app/layout.tsx), só
+   sobrescreve variáveis e primitivos existentes do core — não
+   editar tokens.css/primitives.css para sobreviver a merge do
+   upstream. Nenhum hex solto em componente: tudo via var().
+   Fontes locais em /public/fonts/root (extraídas do base-skin
+   do daemon) — local-first, sem CDN.
+   ============================================================ */
+
+/* ---------- Fontes empacotadas ---------- */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url(/fonts/root/space-grotesk-300.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/root/space-grotesk-400.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/root/space-grotesk-500.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/root/space-grotesk-700.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(/fonts/root/jetbrains-mono-400.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/root/jetbrains-mono-700.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url(/fonts/root/jetbrains-mono-800.woff2) format('woff2');
+}
+
+:root {
+  /* ---------- Tokens primitivos Root ---------- */
+  --c-lime-500: #9BDB1F;
+  --c-lime-300: #C4FF2E;
+  --c-lime-900: #1C3010;
+  --c-mint-100: #DFFFE8;
+  --c-ink-900: #070A08;
+  --c-magenta-500: #FF1F6B;
+  --c-rule: rgba(28, 48, 16, 0.45);
+
+  /* ---------- Semânticos do chrome ---------- */
+  --ui-bg-app: var(--c-ink-900);
+  --ui-bg-surface: #0D130E;
+  --ui-text-primary: var(--c-mint-100);
+  --ui-text-muted: #7F9A86;
+  --ui-accent: var(--c-lime-500);
+  --ui-danger: var(--c-magenta-500);
+  --ui-success: var(--c-lime-300);
+  --ui-border: var(--c-rule);
+  --ui-focus-ring: var(--c-lime-500);
+  --ui-on-accent: var(--c-ink-900); /* texto sobre lime é sempre escuro */
+
+  /* O core consome var(--accent-contrast, #fff) em botões/pills sobre
+     --accent — o fallback branco reprova AA sobre lime. Estas declarações
+     estáticas (aqui e nos escopos dark abaixo) são só FALLBACK para o
+     caso raro do script inline não rodar: em runtime, o pré-hidratação
+     de app/layout.tsx e accentVars()/accentContrastColor() de
+     src/state/appearance.ts setam --accent-contrast inline no <html>
+     por LUMINÂNCIA do accent escolhido (lime → tinta escura, azul/roxo
+     → branco), e estilo inline vence esta cascata. */
+  --accent-contrast: var(--ui-on-accent);
+
+  /* Alias consumido por fallbacks var(--danger, ...) do core */
+  --danger: var(--ui-danger);
+
+  /* ---------- Font stack (vale nos dois temas) ----------
+     Corpo = Space Grotesk; títulos/código = JetBrains Mono.
+     --serif é o slot de display/headline do core → re-apontado
+     para a mono da marca. */
+  --sans: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft YaHei UI', 'Noto Sans', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --serif: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Seleção/focus ring do core (era azul #2563eb) → assinatura lime */
+  --selected: var(--ui-focus-ring);
+  --selected-soft: color-mix(in srgb, var(--ui-focus-ring) 16%, transparent);
+}
+
+/* Overrides de idioma do core (viewer/library.css) redefinem --sans
+   por inteiro — re-declarados aqui com a família da marca na frente. */
+:lang(zh), :lang(zh-CN), :lang(zh-TW), :lang(ja), :lang(ko) {
+  --sans: 'Space Grotesk', 'Inter', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Hiragino Sans GB', 'Source Han Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+[dir='rtl'] {
+  --sans: 'Space Grotesk', 'Cairo', 'Inter', 'Vazirmatn', 'Noto Sans Arabic', 'Segoe UI Arabic', 'Tahoma', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Títulos sem font-family própria herdavam o sans do body →
+   headlines em JetBrains Mono por padrão. */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--mono);
+}
+
+/* ---------- Tema escuro Root (identidade principal) ----------
+   Mesmo par de escopos do core: [data-theme="dark"] explícito e
+   modo system via prefers-color-scheme. Só re-aponta variáveis
+   que o core já define; o resto (fills, sombras, radius, motion)
+   cai no dark stock. Valores fora da paleta canônica são sempre
+   DERIVADOS por color-mix dos primitivos. */
+[data-theme='dark'] {
+  color-scheme: dark;
+  /* fallback — em runtime o inline por luminância (layout.tsx) vence */
+  --accent-contrast: var(--ui-on-accent);
+  --bg: var(--ui-bg-app);
+  --bg-app: var(--ui-bg-app);
+  --bg-panel: var(--ui-bg-surface);
+  --bg-subtle: color-mix(in srgb, var(--ui-bg-surface) 78%, var(--c-lime-900));
+  --bg-muted: color-mix(in srgb, var(--ui-bg-surface) 60%, var(--c-lime-900));
+  --bg-elevated: color-mix(in srgb, var(--ui-bg-surface) 90%, var(--c-mint-100));
+  --bg-fill-tertiary: color-mix(in srgb, var(--c-mint-100) 5%, transparent);
+  --bg-fill-secondary: color-mix(in srgb, var(--c-mint-100) 9%, transparent);
+  --bg-fill: color-mix(in srgb, var(--c-mint-100) 15%, transparent);
+  --border: var(--ui-border);
+  --border-strong: color-mix(in srgb, var(--c-lime-900) 74%, var(--c-mint-100));
+  --border-soft: color-mix(in srgb, var(--c-lime-900) 26%, transparent);
+
+  --text: var(--ui-text-primary);
+  --text-strong: color-mix(in srgb, var(--c-mint-100) 86%, white);
+  --text-muted: var(--ui-text-muted);
+  --text-soft: color-mix(in srgb, var(--ui-text-muted) 62%, var(--ui-bg-app));
+  --text-faint: color-mix(in srgb, var(--ui-text-muted) 42%, var(--ui-bg-app));
+
+  --green: var(--ui-success);
+  --green-bg: color-mix(in srgb, var(--ui-success) 10%, var(--ui-bg-surface));
+  --green-border: color-mix(in srgb, var(--ui-success) 26%, var(--ui-bg-surface));
+  --red: var(--ui-danger);
+  --red-bg: color-mix(in srgb, var(--ui-danger) 12%, var(--ui-bg-surface));
+  --red-border: color-mix(in srgb, var(--ui-danger) 34%, var(--ui-bg-surface));
+
+  --code-header-bg: color-mix(in srgb, var(--ui-bg-surface) 84%, var(--c-lime-900));
+  --code-body-bg: color-mix(in srgb, var(--ui-bg-app) 65%, var(--ui-bg-surface));
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) {
+    color-scheme: dark;
+    /* fallback — em runtime o inline por luminância (layout.tsx) vence */
+    --accent-contrast: var(--ui-on-accent);
+    --bg: var(--ui-bg-app);
+    --bg-app: var(--ui-bg-app);
+    --bg-panel: var(--ui-bg-surface);
+    --bg-subtle: color-mix(in srgb, var(--ui-bg-surface) 78%, var(--c-lime-900));
+    --bg-muted: color-mix(in srgb, var(--ui-bg-surface) 60%, var(--c-lime-900));
+    --bg-elevated: color-mix(in srgb, var(--ui-bg-surface) 90%, var(--c-mint-100));
+    --bg-fill-tertiary: color-mix(in srgb, var(--c-mint-100) 5%, transparent);
+    --bg-fill-secondary: color-mix(in srgb, var(--c-mint-100) 9%, transparent);
+    --bg-fill: color-mix(in srgb, var(--c-mint-100) 15%, transparent);
+    --border: var(--ui-border);
+    --border-strong: color-mix(in srgb, var(--c-lime-900) 74%, var(--c-mint-100));
+    --border-soft: color-mix(in srgb, var(--c-lime-900) 26%, transparent);
+
+    --text: var(--ui-text-primary);
+    --text-strong: color-mix(in srgb, var(--c-mint-100) 86%, white);
+    --text-muted: var(--ui-text-muted);
+    --text-soft: color-mix(in srgb, var(--ui-text-muted) 62%, var(--ui-bg-app));
+    --text-faint: color-mix(in srgb, var(--ui-text-muted) 42%, var(--ui-bg-app));
+
+    --green: var(--ui-success);
+    --green-bg: color-mix(in srgb, var(--ui-success) 10%, var(--ui-bg-surface));
+    --green-border: color-mix(in srgb, var(--ui-success) 26%, var(--ui-bg-surface));
+    --red: var(--ui-danger);
+    --red-bg: color-mix(in srgb, var(--ui-danger) 12%, var(--ui-bg-surface));
+    --red-border: color-mix(in srgb, var(--ui-danger) 34%, var(--ui-bg-surface));
+
+    --code-header-bg: color-mix(in srgb, var(--ui-bg-surface) 84%, var(--c-lime-900));
+    --code-body-bg: color-mix(in srgb, var(--ui-bg-app) 65%, var(--ui-bg-surface));
+  }
+}
+
+/* ---------- Correções de componente (hex órfãos do core) ---------- */
+
+/* Botão primário: fundo --accent exige tinta derivada por luminância
+   (escura sobre lime, branca sobre accents escuros). Substitui também
+   o inset terracota rgba(180,90,59,.18) hardcoded em primitives.css e
+   packages/components/src/styles.css. */
+button.primary {
+  color: var(--accent-contrast);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--c-lime-300) 35%, transparent) inset, var(--shadow-xs);
+}
+
+/* Accent próprio do dock de comentários (#ff5a3c hardcoded em
+   viewer/core.css) re-apontado para o accent da marca; as derivadas
+   color-mix do core seguem automaticamente. */
+.comment-side-panel {
+  --comment-accent: var(--accent);
+}
+
+/* ---------- Contraste AA sobre o accent (lime e configuráveis) ----------
+   O core hardcoda color: white/#fff em botões primários. Sobre o lime
+   #9BDB1F, branco reprova WCAG AA (~1.7:1). Como o accent é configurável
+   (ACCENT_SWATCHES inclui azuis/roxos escuros onde a tinta escura também
+   reprovaria), a cor certa é var(--accent-contrast), derivada por
+   luminância em runtime (appearance.ts + script inline de layout.tsx).
+   Cada seletor abaixo reproduz o do core (especificidade igual) e vence
+   por cascata — este arquivo é importado por último. Estados com color
+   própria no core (hover/disabled) são cobertos junto. */
+
+/* viewer/core.css:313 (base) e :318 (hover redeclara color: white) */
+.viewer-action.primary,
+.viewer-action.primary:hover:not(:disabled) {
+  color: var(--accent-contrast);
+}
+
+/* workspace/mention-home.css:460 (color: #fff; :disabled só muda
+   opacity, herda daqui) */
+.modal-rename .row button.primary {
+  color: var(--accent-contrast);
+}
+
+/* viewer/core.css:2006 — fundo --comment-accent, re-apontado pro accent
+   acima. O :disabled do core mistura #fff com --text-muted → mesmo
+   mix, com a tinta de contraste no lugar do branco. */
+.comment-side-selectbar .primary {
+  color: var(--accent-contrast);
+}
+.comment-side-selectbar .primary:disabled {
+  color: color-mix(in srgb, var(--accent-contrast) 68%, var(--text-muted));
+}
+
+/* viewer/code.css:540 (color: white; :hover do core não redeclara) */
+.sketch-tool.active {
+  color: var(--accent-contrast);
+}
+
+/* ---------- Contraste sobre accent — regras do core com branco hardcoded ----------
+   Varredura completa das regras do core que pintam texto/ícone branco
+   sobre background var(--accent) (ou derivado). Todas re-apontadas para
+   var(--accent-contrast). Mesma mecânica da seção acima: seletor idêntico
+   ao do core (mesma especificidade), este arquivo vence por ordem de
+   importação. Hovers listados só quando o core REDECLARA color neles;
+   os demais herdam da base. Referências de linha = core no momento do
+   reskin (rodada 3). */
+
+/* chat.css:739 */
+.msg .artifact-badge {
+  color: var(--accent-contrast);
+}
+/* chat.css:911 (hover só muda background) */
+.chat-error-action {
+  color: var(--accent-contrast);
+}
+/* chat.css:959 (CTA de sign-in AMR na run-error card) */
+.chat-error-amr-login .amr-account-control--signed-out .amr-account-control__action,
+.chat-error-amr-login .amr-account-control--error .amr-account-control__action {
+  color: var(--accent-contrast);
+}
+/* chat.css:1056 */
+.amr-card__cta {
+  color: var(--accent-contrast);
+}
+/* chat.css:1835 */
+.composer-send {
+  color: var(--accent-contrast);
+}
+
+/* shell.css:735 (hover :741 redeclara color: white) */
+.chrome-action-export,
+.chrome-action-export:hover:not(:disabled) {
+  color: var(--accent-contrast);
+}
+/* shell.css:1226 (hover não redeclara color) */
+.avatar-amr-row__upgrade,
+.avatar-amr-row__upgrade:visited {
+  color: var(--accent-contrast);
+}
+
+/* viewer/tools.css:592 (hover :598 redeclara color: white) */
+.viewer-action-export,
+.viewer-action-export:hover:not(:disabled) {
+  color: var(--accent-contrast);
+}
+/* viewer/tools.css:249 (hover :252 redeclara color: #fff) */
+.plugin-action-button--primary,
+.plugin-action-button--primary:hover:not(:disabled) {
+  color: var(--accent-contrast);
+}
+
+/* home/home-hero.css:2015 (hover não redeclara color) */
+.home-hero__submit {
+  color: var(--accent-contrast);
+}
+/* home/home-hero.css:2105 (hover :2112 redeclara color: white) */
+.home-hero-confirm__primary,
+.home-hero-confirm__primary:hover {
+  color: var(--accent-contrast);
+}
+
+/* home/entry-layout.css:1593 (hover :1609, dentro de @media hover/
+   pointer, redeclara color: #fff — mesma cor da base, override plano
+   cobre os dois) */
+.inline-switcher__account-upgrade,
+.inline-switcher__account-upgrade:hover:not(:disabled) {
+  color: var(--accent-contrast);
+}
+
+/* home/plugins-view.css:396 */
+.plugins-view__primary {
+  color: var(--accent-contrast);
+}
+
+/* home/plugins-home.css:197 e :200 (contador mantém a opacity 0.85
+   do core) */
+.plugins-home__chip--saved.is-active {
+  color: var(--accent-contrast);
+}
+.plugins-home__chip--saved.is-active .plugins-home__chip-count {
+  color: var(--accent-contrast);
+}
+/* home/plugins-home.css:328 e :331 */
+.plugins-home__pill--all.is-active {
+  color: var(--accent-contrast);
+}
+.plugins-home__pill--all.is-active .plugins-home__pill-count {
+  color: var(--accent-contrast);
+}
+
+/* home/tasks.css:1110 */
+.automation-mention-item.is-selected .automation-mention-item__icon {
+  color: var(--accent-contrast);
+}
+/* home/tasks.css:1530 */
+.automation-popover__weekday.is-active {
+  color: var(--accent-contrast);
+}
+
+/* viewer/composio.css:787 */
+.question-form-icon {
+  color: var(--accent-contrast);
+}
+/* viewer/composio.css:1068 */
+.qf-card-pill {
+  color: var(--accent-contrast);
+}
+/* viewer/composio.css:1178 */
+.questions-banner-icon {
+  color: var(--accent-contrast);
+}
+/* viewer/composio.css:1355 (hover só muda background/shadow) */
+.questions-continue {
+  color: var(--accent-contrast);
+}
+/* viewer/composio.css:1865 */
+.ds-modal-primary-action {
+  color: var(--accent-contrast);
+}
+/* viewer/composio.css:2388 */
+.chat-history-badge {
+  color: var(--accent-contrast);
+}
+
+/* viewer/code.css:898 (CTA só ganha fundo accent no hover do card) */
+.chat-example:hover .chat-example-cta {
+  color: var(--accent-contrast);
+}
+/* viewer/code.css:928 */
+.chat-connect-repo-icon {
+  color: var(--accent-contrast);
+}
+
+/* viewer/library.css:2318 */
+.memory-connector-selected-mark {
+  color: var(--accent-contrast);
+}
+/* viewer/library.css:2370 */
+.memory-connector-picker.is-selected .memory-connector-picker-box {
+  color: var(--accent-contrast);
+}
+
+/* viewer/memory.css:458 (:disabled do core tem especificidade maior
+   e segue com --text-muted sobre --bg-subtle) */
+.library-install-submit {
+  color: var(--accent-contrast);
+}
+
+/* viewer/templates-plugins.css:823 */
+.plugin-loop-home__submit {
+  color: var(--accent-contrast);
+}
+/* viewer/templates-plugins.css:2033 (hover só muda background/borda) */
+.plugin-details-modal__primary {
+  color: var(--accent-contrast);
+}
+
+/* viewer/theater.css:567 */
+.assistant-feedback-submit {
+  color: var(--accent-contrast);
+}
+
+/* workspace/artifacts.css:116 (hover não redeclara color) */
+.orbit-artifact-open {
+  color: var(--accent-contrast);
+}
+/* workspace/artifacts.css:1575 (hover :1596, dentro de @media hover/
+   pointer, redeclara color: #fff — mesma cor da base, override plano
+   cobre os dois) */
+.agent-card-amr-upgrade,
+.agent-card-amr-upgrade:hover:not(:disabled) {
+  color: var(--accent-contrast);
+}
+
+/* workspace/design-files.css:503 (fundo --accent-strong = 86% accent —
+   contraste acompanha o accent) */
+.df-row-check[aria-checked="true"] .df-row-check-box {
+  color: var(--accent-contrast);
+}
+
+/* workspace/drawer.css:656 */
+.design-card-checkbox.checked {
+  color: var(--accent-contrast);
+}
+/* workspace/drawer.css:1132 */
+.example-tag {
+  color: var(--accent-contrast);
+}
+
+/* workspace/mention-home.css:421 */
+.updater-popup__button--primary {
+  color: var(--accent-contrast);
+}
+/* workspace/mention-home.css:1622 — ícone branco sobre gradiente que
+   COMEÇA no accent puro; o contraste segue o ponto mais claro */
+.orbit-hero-mark {
+  color: var(--accent-contrast);
+}
+/* workspace/mention-home.css:1702 (hover não redeclara color) */
+.orbit-run-cta {
+  color: var(--accent-contrast);
+}
+
+/* viewer/core.css:1946 pinta o check branco; :1949-52 (.checked) dá o
+   fundo --comment-accent (= accent da marca, ver .comment-side-panel
+   acima) sem redeclarar color → override só no estado com fundo accent */
+.comment-side-check.checked {
+  color: var(--accent-contrast);
+}

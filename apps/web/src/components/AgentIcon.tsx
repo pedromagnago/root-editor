@@ -56,10 +56,13 @@ const MONO_ICONS = new Set([
 
 export function AgentIcon({ id, size = 36, className }: Props) {
   const cls = 'agent-icon' + (className ? ' ' + className : '');
+  // The bundled cloud agent ('amr') carries the product mark; under the Root
+  // identity it renders the Root glyph instead of the upstream vendor asset.
+  const assetId = id === 'amr' ? 'root' : id;
   const ext = ICON_EXT[id];
   if (ext) {
     if (ext === 'svg' && MONO_ICONS.has(id)) {
-      const src = `/agent-icons/${id}.svg`;
+      const src = `/agent-icons/${assetId}.svg`;
       const style: CSSProperties = {
         width: size,
         height: size,
@@ -76,7 +79,7 @@ export function AgentIcon({ id, size = 36, className }: Props) {
     }
     return (
       <img
-        src={`/agent-icons/${id}.${ext}`}
+        src={`/agent-icons/${assetId}.${ext}`}
         alt=""
         width={size}
         height={size}

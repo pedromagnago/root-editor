@@ -1110,12 +1110,12 @@ export function LibrarySection({ active, onOpenProject }: Props) {
           </p>
           <a
             className={styles.clipperDownload}
-            href="https://open-design.ai/clipper"
+            href="https://github.com/pedromagnago/root-editor"
             target="_blank"
             rel="noreferrer"
           >
             <Icon name="download" size={15} />
-            Get the Open Design Web Clipper
+            Get the Root Editor Web Clipper
           </a>
         </div>
       </header>
@@ -1285,7 +1285,7 @@ export function LibrarySection({ active, onOpenProject }: Props) {
         <div className={styles.empty}>
           <p>No assets yet.</p>
           <p className={styles.emptyHint}>
-            Clip from any page with the Open Design Web Clipper, run{' '}
+            Clip from any page with the Root Editor Web Clipper, run{' '}
             <code>od library import &lt;file&gt;</code>, or upload inside a project — everything
             lands here.
           </p>

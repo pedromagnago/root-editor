@@ -1,12 +1,12 @@
 [Desktop Entry]
 Type=Application
-Name=Open Design (@@NAMESPACE@@)
-GenericName=Open Design
-Comment=Open Design packaged build (@@NAMESPACE@@)
+Name=Root Editor (@@NAMESPACE@@)
+GenericName=Root Editor
+Comment=Root Editor packaged build (@@NAMESPACE@@)
 Exec=env OD_PACKAGED_NAMESPACE=@@NAMESPACE@@ @@EXEC_PATH@@ --appimage-extract-and-run %U
 Icon=@@ICON_PATH@@
 Categories=Development;Utility;
-StartupWMClass=Open Design
+StartupWMClass=Root Editor
 StartupNotify=true
 Terminal=false
 MimeType=x-scheme-handler/od;

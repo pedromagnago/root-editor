@@ -288,8 +288,11 @@ export function resolveAboutPanelVersion(options: DesktopMainOptions): string | 
 
 function configureAboutPanel(options: DesktopMainOptions): void {
   const version = resolveAboutPanelVersion(options);
-  if (version == null) return;
-  app.setAboutPanelOptions({ version });
+  app.setAboutPanelOptions({
+    applicationName: "Root Editor",
+    copyright: "© Operação Root",
+    ...(version == null ? {} : { version }),
+  });
 }
 
 function appConfigUrl(baseUrl: string): string {
@@ -482,20 +485,14 @@ function installDesktopMenu(
           {
             label: "Documentation",
             click() {
-              void shell.openExternal("https://github.com/nexu-io/open-design#readme");
+              void shell.openExternal("https://github.com/pedromagnago/root-editor#readme");
             },
           },
           { type: "separator" },
           {
-            label: "Contact Us",
-            click() {
-              void shell.openExternal("https://x.com/OpenDesignHQ");
-            },
-          },
-          {
             label: "Report Issue",
             click() {
-              void shell.openExternal("https://github.com/nexu-io/open-design/issues/new");
+              void shell.openExternal("https://github.com/pedromagnago/root-editor/issues/new");
             },
           },
           {

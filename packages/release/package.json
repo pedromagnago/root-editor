@@ -3,7 +3,7 @@
   "version": "0.12.1",
   "private": true,
   "type": "module",
-  "description": "Open Design release domain primitives.",
+  "description": "Root Editor release domain primitives.",
   "main": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
