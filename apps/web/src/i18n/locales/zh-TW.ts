@@ -1521,6 +1521,8 @@ export const zhTW: Dict = {
   "newproj.importClaudeZipTitle": "匯入 Claude Design 匯出的 .zip 檔案",
   "newproj.importingClaudeZip": "正在匯入…",
   "newproj.importCarousel": "Import carousel (slides.json)",
+  "newproj.createCarousel": "New carousel",
+  "newproj.creatingCarousel": "Creating…",
   "newproj.importingCarousel": "Importing…",
   "newproj.privacyFooter": "預設情況下只有你能看到自己的專案。",
   "newproj.designSystem": "設計系統",

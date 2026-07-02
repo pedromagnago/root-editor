@@ -1406,6 +1406,8 @@ export const id: Dict = {
   'newproj.importClaudeZipTitle': 'Impor file .zip hasil ekspor Claude Design',
   'newproj.importingClaudeZip': 'Mengimpor...',
   'newproj.importCarousel': "Import carousel (slides.json)",
+  'newproj.createCarousel': "New carousel",
+  'newproj.creatingCarousel': "Creating…",
   'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': 'Secara default hanya kamu yang bisa melihat proyekmu.',
   'newproj.designSystem': 'Sistem desain',

@@ -1406,6 +1406,8 @@ export const fa: Dict = {
   'newproj.importClaudeZipTitle': 'وارد کردن یک فایل .zip صادر شده از Claude Design',
   'newproj.importingClaudeZip': 'در حال وارد کردن…',
   'newproj.importCarousel': "Import carousel (slides.json)",
+  'newproj.createCarousel': "New carousel",
+  'newproj.creatingCarousel': "Creating…",
   'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': 'به طور پیش‌فرض فقط شما می‌توانید پروژه خود را ببینید.',
   'newproj.designSystem': 'سیستم طراحی',

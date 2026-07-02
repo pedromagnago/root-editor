@@ -1406,6 +1406,8 @@ export const it: Dict = {
   'newproj.importClaudeZipTitle': 'Importa un\'esportazione .zip Claude Design',
   'newproj.importingClaudeZip': 'Importazione…',
   'newproj.importCarousel': "Import carousel (slides.json)",
+  'newproj.createCarousel': "New carousel",
+  'newproj.creatingCarousel': "Creating…",
   'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': 'Solo tu puoi vedere il tuo progetto per impostazione predefinita.',
   'newproj.designSystem': 'Design system',

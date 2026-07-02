@@ -367,6 +367,7 @@ interface Props {
   ) => Promise<ImportClaudeDesignOutcome | void> | ImportClaudeDesignOutcome | void;
   onImportFolder?: (baseDir: string) => Promise<void> | void;
   onImportCarousel?: (baseDir: string) => Promise<void> | void;
+  onCreateCarousel?: (theme?: string) => Promise<void> | void;
   onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
   onOpenProject: (id: string, fileName?: string) => Promise<boolean> | boolean | void;
   onOpenLiveArtifact: (projectId: string, artifactId: string) => void;
@@ -474,6 +475,7 @@ export function EntryShell({
   onImportClaudeDesign,
   onImportFolder,
   onImportCarousel,
+  onCreateCarousel,
   onImportFolderResponse,
   onOpenProject,
   onOpenLiveArtifact,
@@ -1020,6 +1022,7 @@ export function EntryShell({
         onImportClaudeDesign={onImportClaudeDesign}
         {...(onImportFolder ? { onImportFolder } : {})}
         {...(onImportCarousel ? { onImportCarousel } : {})}
+        {...(onCreateCarousel ? { onCreateCarousel } : {})}
         {...(onImportFolderResponse ? { onImportFolderResponse } : {})}
         onOpenConnectorsTab={() => {
           setNewProjectOpen(false);

@@ -90,6 +90,7 @@ import {
   deleteProject as deleteProjectApi,
   duplicateProject,
   getProject,
+  createCarouselProject,
   importCarouselProject,
   importClaudeDesignZip,
   importFolderProject,
@@ -1750,6 +1751,24 @@ function AppInner() {
     });
   }, [rememberLocalProject]);
 
+  const handleCreateCarousel = useCallback(async (theme?: string) => {
+    const result = await createCarouselProject(theme);
+    rememberLocalProject(result.project.id);
+    setProjects((curr) => [result.project, ...curr.filter((p) => p.id !== result.project.id)]);
+    // When a theme was given, auto-send it as the first message so the
+    // pipeline starts on arrival (ProjectView reads this flag on mount).
+    if (theme && theme.trim()) {
+      try {
+        window.sessionStorage.setItem(`od:auto-send-first:${result.project.id}`, '1');
+      } catch { /* sessionStorage unavailable — user sends the theme manually */ }
+    }
+    navigate({
+      kind: 'project',
+      projectId: result.project.id,
+      fileName: null,
+    });
+  }, [rememberLocalProject]);
+
   // PR #974: on desktop, the host bridge owns the picker and import POST
   // atomically. The renderer never sees the path, token, or daemon DTO;
   // it receives host-owned project identifiers and refreshes project state
@@ -2361,6 +2380,7 @@ function AppInner() {
         onImportClaudeDesign={handleImportClaudeDesign}
         onImportFolder={handleImportFolder}
         onImportCarousel={handleImportCarousel}
+        onCreateCarousel={handleCreateCarousel}
         onImportFolderResponse={handleImportFolderResponse}
         onOpenProject={handleOpenProject}
         onOpenLiveArtifact={handleOpenLiveArtifact}

@@ -1406,6 +1406,8 @@ export const th: Dict = {
   'newproj.importClaudeZipTitle': 'นำเข้า .zip จาก Claude Design',
   'newproj.importingClaudeZip': 'กำลังนำเข้า…',
   'newproj.importCarousel': "Import carousel (slides.json)",
+  'newproj.createCarousel': "New carousel",
+  'newproj.creatingCarousel': "Creating…",
   'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': 'โดยค่าเริ่มต้น คุณเท่านั้นที่สามารถดูโปรเจกต์ของคุณได้',
   'newproj.designSystem': 'ระบบการออกแบบ',

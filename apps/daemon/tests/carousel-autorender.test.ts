@@ -33,12 +33,13 @@ function validDeck(): Record<string, unknown> {
 }
 
 describe('isCarouselProject', () => {
-  it('matches imported and chat-created carousels only', () => {
-    expect(isCarouselProject({ importedFrom: 'carousel' })).toBe(true);
-    expect(isCarouselProject({ carousel: true })).toBe(true);
-    expect(isCarouselProject({ importedFrom: 'folder' })).toBe(false);
-    expect(isCarouselProject(null)).toBe(false);
-    expect(isCarouselProject(undefined)).toBe(false);
+  it('matches imported, chat-created, and skill-driven carousels only', () => {
+    expect(isCarouselProject({ metadata: { importedFrom: 'carousel' } })).toBe(true);
+    expect(isCarouselProject({ metadata: { carousel: true } })).toBe(true);
+    expect(isCarouselProject({ skillId: 'carrossel-root' })).toBe(true);
+    expect(isCarouselProject({ skillId: 'ad-creative', metadata: { importedFrom: 'folder' } })).toBe(false);
+    expect(isCarouselProject({})).toBe(false);
+    expect(isCarouselProject({ metadata: null })).toBe(false);
   });
 });
 

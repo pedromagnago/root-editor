@@ -381,6 +381,33 @@ export async function putCarouselDocument(
   return (await resp.json()) as { ok: boolean; slides: number };
 }
 
+export interface CreateCarouselResponse {
+  project: Project;
+  conversationId: string;
+}
+
+// Creates a fresh carousel project driven by the carrossel-root skill.
+// The theme is optional — the skill asks for the insumo on its first turn
+// when none is supplied.
+export async function createCarouselProject(
+  theme?: string,
+): Promise<CreateCarouselResponse> {
+  const resp = await fetch('/api/projects/carousel', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(theme && theme.trim() ? { theme: theme.trim() } : {}),
+  });
+  if (!resp.ok) {
+    let message = 'Failed to create carousel';
+    try {
+      const body = await resp.json();
+      if (body?.error?.message) message = body.error.message;
+    } catch { /* use default message */ }
+    throw new Error(message);
+  }
+  return (await resp.json()) as CreateCarouselResponse;
+}
+
 export async function importClaudeDesignZip(
   file: File,
 ): Promise<{ project: Project; conversationId: string; entryFile: string }> {

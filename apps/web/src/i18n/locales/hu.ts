@@ -1406,6 +1406,8 @@ export const hu: Dict = {
   'newproj.importClaudeZipTitle': 'Claude Design .zip export importálása',
   'newproj.importingClaudeZip': 'Importálás…',
   'newproj.importCarousel': "Import carousel (slides.json)",
+  'newproj.createCarousel': "New carousel",
+  'newproj.creatingCarousel': "Creating…",
   'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': 'Alapértelmezetten csak te láthatod a projekted.',
   'newproj.designSystem': 'Designrendszer',

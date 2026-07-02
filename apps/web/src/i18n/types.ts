@@ -1949,6 +1949,8 @@ export interface Dict {
   'newproj.importClaudeZipTitle': string;
   'newproj.importingClaudeZip': string;
   'newproj.importCarousel': string;
+  'newproj.createCarousel': string;
+  'newproj.creatingCarousel': string;
   'newproj.importingCarousel': string;
   'newproj.privacyFooter': string;
   'newproj.designSystem': string;

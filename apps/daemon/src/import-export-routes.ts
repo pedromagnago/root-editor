@@ -32,7 +32,7 @@ import {
   writeCarouselDeck,
 } from './carousel-import.js';
 import { logCarousel } from './logging/carousel.js';
-import type { CarouselAutoRender } from './carousel-autorender.js';
+import { CARROSSEL_SKILL_ID, isCarouselProject, type CarouselAutoRender } from './carousel-autorender.js';
 
 export interface RegisterImportRoutesDeps extends RouteDeps<'db' | 'http' | 'uploads' | 'node' | 'ids' | 'paths' | 'imports' | 'auth' | 'projectStore' | 'conversations' | 'projectFiles' | 'validation'> {
   // The auto-render service, when running, watches carousel projects for
@@ -68,9 +68,8 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
     id: string,
   ): { dir: string; entryFile: string } | null => {
     const project = getProject(db, id);
-    if (!project) return null;
+    if (!project || !isCarouselProject(project)) return null;
     const metadata = (project.metadata ?? {}) as Record<string, unknown>;
-    if (metadata.importedFrom !== 'carousel') return null;
     return {
       dir: projectDir(PROJECTS_DIR, project.id),
       entryFile:
@@ -143,6 +142,47 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
   // machine contract) as a materialized deck project. Unlike folder import,
   // the piece folder is read ONCE and the generated deck lives under
   // PROJECTS_DIR — edits never mutate the source folder.
+  // Create a fresh carousel project driven by the editorial pipeline: the
+  // carrossel-root skill is staged into the cwd on the first agent run, the
+  // theme becomes the first message, and when the agent writes slides.json
+  // the auto-render service materializes the deck. No import, no source folder.
+  app.post('/api/projects/carousel', async (req, res) => {
+    try {
+      const { theme, name } = req.body || {};
+      const id = randomId();
+      const now = Date.now();
+      const trimmedTheme = typeof theme === 'string' ? theme.trim() : '';
+      const projectName =
+        typeof name === 'string' && name.trim()
+          ? name.trim()
+          : trimmedTheme
+            ? trimmedTheme.slice(0, 80)
+            : 'Novo carrossel';
+      const project = insertProject(db, {
+        id,
+        name: projectName,
+        skillId: CARROSSEL_SKILL_ID,
+        designSystemId: null,
+        pendingPrompt: trimmedTheme || null,
+        metadata: { kind: 'prototype', carousel: true },
+        createdAt: now,
+        updatedAt: now,
+      });
+      const cid = randomId();
+      insertConversation(db, {
+        id: cid,
+        projectId: id,
+        title: projectName,
+        createdAt: now,
+        updatedAt: now,
+      });
+      carouselAutoRender?.ensureWatching(id);
+      res.json({ project, conversationId: cid });
+    } catch (err: any) {
+      sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+    }
+  });
+
   app.post('/api/import/carousel', async (req, res) => {
     const traceId = randomId();
     const importStartedAt = Date.now();

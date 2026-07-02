@@ -28,6 +28,10 @@ import { logCarousel } from './logging/carousel.js';
 
 const CAROUSEL_ENTRY = 'deck.html';
 
+// The bundled skill that runs the editorial pipeline and writes slides.json.
+// A project carrying it is a carousel even before its first render.
+export const CARROSSEL_SKILL_ID = 'carrossel-root';
+
 export interface CarouselAutoRender {
   ensureWatching(projectId: string): void;
   // Records the slides.json content a route just rendered, so the watcher
@@ -39,6 +43,7 @@ export interface CarouselAutoRender {
 interface ProjectRow {
   id: string;
   name?: string;
+  skillId?: string | null;
   metadata?: Record<string, unknown> | null;
 }
 
@@ -58,7 +63,12 @@ export interface CarouselAutoRenderDeps {
   randomId: () => string;
 }
 
-export function isCarouselProject(metadata: Record<string, unknown> | null | undefined): boolean {
+export function isCarouselProject(project: {
+  skillId?: string | null;
+  metadata?: Record<string, unknown> | null;
+}): boolean {
+  if (project.skillId === CARROSSEL_SKILL_ID) return true;
+  const metadata = project.metadata;
   if (!metadata) return false;
   return metadata.importedFrom === 'carousel' || metadata.carousel === true;
 }
@@ -168,7 +178,7 @@ export function startCarouselAutoRender(deps: CarouselAutoRenderDeps): CarouselA
   }
 
   for (const project of deps.listProjects()) {
-    if (isCarouselProject(project.metadata)) ensureWatching(project.id);
+    if (isCarouselProject(project)) ensureWatching(project.id);
   }
 
   async function stop(): Promise<void> {

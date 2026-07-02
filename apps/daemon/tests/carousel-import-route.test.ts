@@ -269,6 +269,42 @@ describe('POST /api/import/carousel', () => {
     expect(stored.slides[3].tipo).toBe('fechamento');
   });
 
+  it('POST /api/projects/carousel creates a skill-driven carousel project', async () => {
+    const resp = await fetch(`${baseUrl}/api/projects/carousel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ theme: 'Pronampe 2026 é uma armadilha' }),
+    });
+    expect(resp.status).toBe(200);
+    const body = (await resp.json()) as {
+      project: { id: string; name: string; skillId: string; metadata: Record<string, unknown>; pendingPrompt?: string };
+      conversationId: string;
+    };
+    expect(body.project.skillId).toBe('carrossel-root');
+    expect(body.project.metadata.carousel).toBe(true);
+    expect(body.project.name).toBe('Pronampe 2026 é uma armadilha');
+    expect(body.conversationId).toBeTruthy();
+
+    // A subsequent slides.json write is a valid carousel (the project is
+    // recognized as a carousel even before its first deck render).
+    const got = await fetch(`${baseUrl}/api/projects/${body.project.id}/carousel`);
+    // No slides.json yet → GET reports it missing, but the project IS a carousel
+    // (not the "not a carousel" 404).
+    const err = (await got.json()) as { error: { message: string } };
+    expect(err.error.message).toContain('slides.json not found');
+  });
+
+  it('POST /api/projects/carousel defaults the name when no theme is given', async () => {
+    const resp = await fetch(`${baseUrl}/api/projects/carousel`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    expect(resp.status).toBe(200);
+    const body = (await resp.json()) as { project: { name: string; pendingPrompt?: string | null } };
+    expect(body.project.name).toBe('Novo carrossel');
+  });
+
   it('PUT /carousel refuses image refs escaping the project dir', async () => {
     const projectId = await importValidPiece();
     const got = await fetch(`${baseUrl}/api/projects/${projectId}/carousel`);

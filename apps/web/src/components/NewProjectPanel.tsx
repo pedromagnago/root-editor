@@ -146,6 +146,9 @@ interface Props {
   // contract) and POSTs `/api/import/carousel`; the daemon materializes
   // the deck project without touching the source folder.
   onImportCarousel?: (baseDir: string) => Promise<void> | void;
+  // One-click "new carousel": creates a project driven by the carrossel-root
+  // skill and drops the user in the chat to describe the theme.
+  onCreateCarousel?: (theme?: string) => Promise<void> | void;
   // Host flow: the desktop main process owns the picker dialog and
   // the import call atomically (`pickAndImport` IPC). The renderer
   // never sees the path or the HMAC token; it only receives the
@@ -272,6 +275,7 @@ export function NewProjectPanel({
   onImportClaudeDesign,
   onImportFolder,
   onImportCarousel,
+  onCreateCarousel,
   onImportFolderResponse,
   mediaProviders,
   connectors,
@@ -291,6 +295,7 @@ export function NewProjectPanel({
   const [carouselImportError, setCarouselImportError] = useState<
     { message: string } | null
   >(null);
+  const [carouselCreating, setCarouselCreating] = useState(false);
   const [workingDir, setWorkingDir] = useState<string | null>(null);
   const [workingDirToken, setWorkingDirToken] = useState<string | null>(null);
   const [workingDirPicking, setWorkingDirPicking] = useState(false);
@@ -793,6 +798,16 @@ export function NewProjectPanel({
     onImportFolderResponse,
   });
 
+  async function handleCreateCarousel() {
+    if (!onCreateCarousel || carouselCreating) return;
+    setCarouselCreating(true);
+    try {
+      await onCreateCarousel();
+    } finally {
+      setCarouselCreating(false);
+    }
+  }
+
   async function handleImportCarousel() {
     if (!onImportCarousel) return;
     setCarouselImportError(null);
@@ -1115,6 +1130,23 @@ export function NewProjectPanel({
             >
               <Icon name="folder" size={13} />
               <span>{folderImport.importing ? 'Opening...' : 'Open folder'}</span>
+            </button>
+          </div>
+        ) : null}
+        {onCreateCarousel ? (
+          <div className="newproj-open-folder">
+            <button
+              type="button"
+              className="newproj-import"
+              disabled={carouselCreating}
+              onClick={() => void handleCreateCarousel()}
+            >
+              <Icon name="sparkles" size={13} />
+              <span>
+                {carouselCreating
+                  ? t('newproj.creatingCarousel')
+                  : t('newproj.createCarousel')}
+              </span>
             </button>
           </div>
         ) : null}
