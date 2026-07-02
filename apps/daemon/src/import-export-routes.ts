@@ -26,6 +26,7 @@ import {
   buildCarouselDeckHtml,
   parseCarouselSlides,
 } from './carousel-import.js';
+import { logCarousel } from './logging/carousel.js';
 
 export interface RegisterImportRoutesDeps extends RouteDeps<'db' | 'http' | 'uploads' | 'node' | 'ids' | 'paths' | 'imports' | 'auth' | 'projectStore' | 'conversations' | 'projectFiles' | 'validation'> {}
 
@@ -169,6 +170,8 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
   // the piece folder is read ONCE and the generated deck lives under
   // PROJECTS_DIR — edits never mutate the source folder.
   app.post('/api/import/carousel', async (req, res) => {
+    const traceId = randomId();
+    const importStartedAt = Date.now();
     try {
       const { baseDir, name } = req.body || {};
       if (typeof baseDir !== 'string' || !baseDir.trim()) {
@@ -237,12 +240,26 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
       try {
         slidesRaw = await fs.promises.readFile(slidesPath, 'utf8');
       } catch {
+        logCarousel({
+          event: 'import_rejected',
+          traceId,
+          reason: 'not_found',
+          problems: 0,
+          durationMs: Date.now() - importStartedAt,
+        });
         return sendApiError(res, 400, 'BAD_REQUEST', 'slides.json not found in folder');
       }
       let slidesValue: unknown;
       try {
         slidesValue = JSON.parse(slidesRaw);
       } catch (err: any) {
+        logCarousel({
+          event: 'import_rejected',
+          traceId,
+          reason: 'invalid_json',
+          problems: 0,
+          durationMs: Date.now() - importStartedAt,
+        });
         return sendApiError(
           res,
           400,
@@ -255,6 +272,13 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         deck = parseCarouselSlides(slidesValue);
       } catch (err) {
         if (err instanceof CarouselContractError) {
+          logCarousel({
+            event: 'import_rejected',
+            traceId,
+            reason: 'contract',
+            problems: err.problems.length,
+            durationMs: Date.now() - importStartedAt,
+          });
           return sendApiError(res, 400, 'BAD_REQUEST', err.message, {
             details: { problems: err.problems },
           });
@@ -363,6 +387,14 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         updatedAt: now,
       });
       setTabs(db, id, [entryFile], entryFile);
+      logCarousel({
+        event: 'import_succeeded',
+        traceId,
+        projectId: id,
+        slides: deck.slides.length,
+        images: imageUris.size,
+        durationMs: Date.now() - importStartedAt,
+      });
       res.json({ project, conversationId: cid, entryFile, slides: deck.slides.length });
     } catch (err: any) {
       sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
@@ -402,6 +434,8 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
   });
 
   app.put('/api/projects/:id/carousel', async (req, res) => {
+    const traceId = randomId();
+    const editStartedAt = Date.now();
     try {
       const carousel = loadCarouselProject(req.params.id);
       if (!carousel) return sendApiError(res, 404, 'NOT_FOUND', 'carousel project not found');
@@ -411,6 +445,14 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         typeof documentValue !== 'object' ||
         Array.isArray(documentValue)
       ) {
+        logCarousel({
+          event: 'edit_rejected',
+          traceId,
+          projectId: req.params.id,
+          reason: 'bad_request',
+          problems: 0,
+          durationMs: Date.now() - editStartedAt,
+        });
         return sendApiError(
           res,
           400,
@@ -423,6 +465,14 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         deck = parseCarouselSlides(documentValue);
       } catch (err) {
         if (err instanceof CarouselContractError) {
+          logCarousel({
+            event: 'edit_rejected',
+            traceId,
+            projectId: req.params.id,
+            reason: 'contract',
+            problems: err.problems.length,
+            durationMs: Date.now() - editStartedAt,
+          });
           return sendApiError(res, 400, 'BAD_REQUEST', err.message, {
             details: { problems: err.problems },
           });
@@ -441,6 +491,13 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         'utf8',
       );
       await fs.promises.writeFile(path.join(carousel.dir, carousel.entryFile), html, 'utf8');
+      logCarousel({
+        event: 'edit_succeeded',
+        traceId,
+        projectId: req.params.id,
+        slides: deck.slides.length,
+        durationMs: Date.now() - editStartedAt,
+      });
       res.json({ ok: true, slides: deck.slides.length });
     } catch (err: any) {
       sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
@@ -808,6 +865,7 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
     body: any,
   ) {
     let renderOutputDir: string | null = null;
+    const exportStartedAt = Date.now();
     try {
       const { fileName, title, index, imageFormat, width, height, deviceScaleFactor, targetWidth } =
         body || {};
@@ -1135,6 +1193,18 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
         assembleMs: Date.now() - tRead,
         totalMs: Date.now() - tStart,
       });
+      if (format === 'slides') {
+        logCarousel({
+          event: 'export_succeeded',
+          traceId: randomId(),
+          projectId,
+          format,
+          slides: images.length,
+          targetWidth: typeof targetWidth === 'number' ? targetWidth : null,
+          durationMs: Date.now() - tStart,
+          bytes: buffer.length,
+        });
+      }
       const filename = `${defaultFilename}.${ext}`;
       const asciiFallback =
         filename.replace(/[^\x20-\x7e]/g, '_').replace(/"/g, '_') || `deck.${ext}`;
@@ -1146,6 +1216,16 @@ export function registerProjectExportRoutes(app: Express, ctx: RegisterProjectEx
       res.send(buffer);
     } catch (err: any) {
       const status = err && err.code === 'ENOENT' ? 404 : 400;
+      if (format === 'slides') {
+        logCarousel({
+          event: 'export_failed',
+          traceId: randomId(),
+          projectId,
+          format,
+          reason: String(err?.message || err).slice(0, 200),
+          durationMs: Date.now() - exportStartedAt,
+        });
+      }
       sendApiError(
         res,
         status,
