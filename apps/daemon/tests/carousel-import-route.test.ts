@@ -114,8 +114,12 @@ describe('POST /api/import/carousel', () => {
     const dir = materializedDir(body.project.id);
     const html = await readFile(path.join(dir, 'deck.html'), 'utf8');
     expect(html.match(/class="slide /g)?.length).toBe(4);
-    // Image embedded as base64, resolved relative to the piece folder.
+    // Image embedded as base64, copied into the self-contained project.
     expect(html).toContain('data:image/png;base64,');
+    const copiedImage = await readFile(path.join(dir, 'assets', 'img.png'));
+    expect(copiedImage.equals(TINY_PNG)).toBe(true);
+    const storedDoc = JSON.parse(await readFile(path.join(dir, 'slides.json'), 'utf8'));
+    expect(storedDoc.slides[1].imagem.ref).toBe('assets/img.png');
     // Contract emphasis survives; anything else is escaped.
     expect(html).toContain('<em>viva</em>');
     expect(html).toContain('<strong>forte</strong>');
@@ -187,5 +191,101 @@ describe('POST /api/import/carousel', () => {
     await writeFile(path.join(piece, 'slides.json'), JSON.stringify(validDeck()), 'utf8');
     const resp = await importCarousel({ baseDir: piece });
     expect(resp.status).toBe(403);
+  });
+
+  async function importValidPiece(): Promise<string> {
+    const piece = makePieceDir();
+    await writeFile(path.join(piece, 'slides.json'), JSON.stringify(validDeck()), 'utf8');
+    await writeFile(path.join(piece, 'img.png'), TINY_PNG);
+    const resp = await importCarousel({ baseDir: piece });
+    expect(resp.status).toBe(200);
+    const body = (await resp.json()) as { project: { id: string } };
+    return body.project.id;
+  }
+
+  it('GET /carousel returns the editable working copy', async () => {
+    const projectId = await importValidPiece();
+    const resp = await fetch(`${baseUrl}/api/projects/${projectId}/carousel`);
+    expect(resp.status).toBe(200);
+    const body = (await resp.json()) as {
+      document: { meta: { handle: string }; slides: Array<Record<string, any>> };
+      entryFile: string;
+    };
+    expect(body.entryFile).toBe('deck.html');
+    expect(body.document.meta.handle).toBe('@root');
+    expect(body.document.slides).toHaveLength(4);
+    expect(body.document.slides[1]!.imagem.ref).toBe('assets/img.png');
+  });
+
+  it('GET /carousel is 404 for non-carousel projects', async () => {
+    const resp = await fetch(`${baseUrl}/api/projects/does-not-exist/carousel`);
+    expect(resp.status).toBe(404);
+  });
+
+  it('PUT /carousel persists edits and re-renders the deck', async () => {
+    const projectId = await importValidPiece();
+    const got = await fetch(`${baseUrl}/api/projects/${projectId}/carousel`);
+    const { document } = (await got.json()) as { document: any };
+    document.slides[0].headline = 'Headline <em>editada</em> pelo painel';
+    document.slides[2].bg = 'gradient';
+
+    const put = await fetch(`${baseUrl}/api/projects/${projectId}/carousel`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ document }),
+    });
+    expect(put.status).toBe(200);
+    expect(((await put.json()) as { slides: number }).slides).toBe(4);
+
+    const dir = materializedDir(projectId);
+    const html = await readFile(path.join(dir, 'deck.html'), 'utf8');
+    expect(html).toContain('Headline <em>editada</em> pelo painel');
+    expect(html).toContain('class="slide gradient"');
+    // The self-contained image still renders after a re-render from edits.
+    expect(html).toContain('data:image/png;base64,');
+    const stored = JSON.parse(await readFile(path.join(dir, 'slides.json'), 'utf8'));
+    expect(stored.slides[0].headline).toBe('Headline <em>editada</em> pelo painel');
+  });
+
+  it('PUT /carousel rejects edits that break the contract', async () => {
+    const projectId = await importValidPiece();
+    const got = await fetch(`${baseUrl}/api/projects/${projectId}/carousel`);
+    const { document } = (await got.json()) as { document: any };
+    document.slides[3].tipo = 'conteudo'; // no fechamento anymore
+
+    const put = await fetch(`${baseUrl}/api/projects/${projectId}/carousel`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ document }),
+    });
+    expect(put.status).toBe(400);
+    const body = (await put.json()) as { error: { details?: { problems?: string[] } } };
+    expect(body.error.details?.problems?.join(' ')).toContain('fechamento');
+
+    // Contract on disk is untouched after a rejected edit.
+    const stored = JSON.parse(
+      await readFile(path.join(materializedDir(projectId), 'slides.json'), 'utf8'),
+    );
+    expect(stored.slides[3].tipo).toBe('fechamento');
+  });
+
+  it('PUT /carousel refuses image refs escaping the project dir', async () => {
+    const projectId = await importValidPiece();
+    const got = await fetch(`${baseUrl}/api/projects/${projectId}/carousel`);
+    const { document } = (await got.json()) as { document: any };
+    document.slides[1].imagem = { tipo: 'local', ref: '../../../etc/hosts' };
+
+    const put = await fetch(`${baseUrl}/api/projects/${projectId}/carousel`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ document }),
+    });
+    expect(put.status).toBe(200);
+    const html = await readFile(
+      path.join(materializedDir(projectId), 'deck.html'),
+      'utf8',
+    );
+    expect(html).not.toContain('data:image/png;base64,');
+    expect(html).not.toContain('etc/hosts');
   });
 });

@@ -122,6 +122,7 @@ import type {
   LiveArtifactWorkspaceEntry,
   ProjectFile,
 } from '../types';
+import { CarouselEditorPanel } from './CarouselEditorPanel';
 import { Icon } from './Icon';
 import { RemixIcon } from './RemixIcon';
 import { SocialShareGrid } from './SocialShareGrid';
@@ -5588,6 +5589,10 @@ function HtmlViewer({
   const [reloadKey, setReloadKey] = useState(0);
   const [boardMode, setBoardMode] = useState(false);
   const [commentPanelOpen, setCommentPanelOpen] = useState(false);
+  // Dock lateral do editor de carrossel (artefatos importados do contrato
+  // slides.json). Só é alcançável quando o sidecar do import marcou
+  // metadata.source === 'carousel' — ver carouselEditable abaixo.
+  const [carouselEditorOpen, setCarouselEditorOpen] = useState(false);
   const [commentCreateMode, setCommentCreateMode] = useState(false);
   const [boardTool, setBoardTool] = useState<BoardTool>('inspect');
   const [inspectMode, setInspectMode] = useState(false);
@@ -5684,6 +5689,9 @@ function HtmlViewer({
   useEffect(() => {
     setManualEditSrcDocActive(false);
     setManualEditFrozenSource(null);
+  }, [projectId, file.name]);
+  useEffect(() => {
+    setCarouselEditorOpen(false);
   }, [projectId, file.name]);
   useEffect(() => {
     onCommentModeChange?.(commentPanelOpen);
@@ -5948,9 +5956,24 @@ function HtmlViewer({
   const previewStateKey = `${projectId}:${file.name}`;
   const previewScale = zoom / 100;
   const localCommentSideDockActive = commentPanelOpen && !commentPortalHost;
+  // Gate do editor de carrossel: o import grava o sidecar do artefato com
+  // metadata.source === 'carousel', então nenhuma prop nova é necessária.
+  const carouselEditable = file.artifactManifest?.metadata?.source === 'carousel';
+  // O dock do carrossel divide a mesma coluna direita do comment-side-dock,
+  // então os dois são mutuamente exclusivos (o toggle fecha o de comentários
+  // ao abrir; o efeito abaixo cobre o caminho inverso).
+  const carouselDockActive =
+    carouselEditorOpen &&
+    carouselEditable &&
+    mode === 'preview' &&
+    !manualEditMode &&
+    !localCommentSideDockActive;
+  useEffect(() => {
+    if (localCommentSideDockActive) setCarouselEditorOpen(false);
+  }, [localCommentSideDockActive]);
   const boardPreviewCanvasSize = commentPreviewCanvasSize(previewBodySize, {
-    boardMode: localCommentSideDockActive,
-    sidePanelCollapsed: commentSidePanelCollapsed,
+    boardMode: localCommentSideDockActive || carouselDockActive,
+    sidePanelCollapsed: localCommentSideDockActive ? commentSidePanelCollapsed : false,
     viewport: previewViewport,
   });
   const boardSideDockStacked = usesStackedCommentSideDock(previewBodySize, {
@@ -6081,7 +6104,8 @@ function HtmlViewer({
   const [slideState, setSlideState] = useState<SlideState | null>(
     () => htmlPreviewSlideState.get(previewStateKey) ?? null,
   );
-  const boardPreviewScaleOptions = localCommentSideDockActive ? { canvasPadding: 0 } : undefined;
+  const boardPreviewScaleOptions =
+    localCommentSideDockActive || carouselDockActive ? { canvasPadding: 0 } : undefined;
   const overlayPreviewScale = effectivePreviewScale(
     previewViewport,
     previewScale,
@@ -7691,10 +7715,13 @@ function HtmlViewer({
     return () => window.removeEventListener('message', onMessage);
   }, [inspectMode, isOurPreviewIframeSource]);
 
-  function postSlide(action: 'next' | 'prev' | 'first' | 'last') {
+  function postSlide(action: 'next' | 'prev' | 'first' | 'last' | 'go', index?: number) {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
-    win.postMessage({ type: 'od:slide', action }, '*');
+    win.postMessage(
+      { type: 'od:slide', action, ...(typeof index === 'number' ? { index } : {}) },
+      '*',
+    );
   }
 
   function syncCachedSlideStateToIframe(target: HTMLIFrameElement | null = iframeRef.current) {
@@ -9682,6 +9709,29 @@ function HtmlViewer({
               </button>
             </span>
           ) : null}
+          {showPreviewToolbarControls && carouselEditable ? (
+            <button
+              type="button"
+              className={`viewer-action viewer-action-icon od-tooltip${carouselEditorOpen ? ' active' : ''}`}
+              data-testid="carousel-editor-toggle"
+              data-tooltip={t('carouselEditor.open')}
+              data-tooltip-placement="bottom"
+              title={t('carouselEditor.open')}
+              aria-label={t('carouselEditor.open')}
+              aria-pressed={carouselEditorOpen}
+              onClick={() => {
+                setCarouselEditorOpen((open) => {
+                  const next = !open;
+                  // O dock do carrossel e o comment-side-dock disputam a
+                  // mesma coluna: abrir um fecha o outro (MVP).
+                  if (next) setCommentPanelOpen(false);
+                  return next;
+                });
+              }}
+            >
+              <Icon name="layout" size={14} />
+            </button>
+          ) : null}
         </div>
         <div className="viewer-toolbar-actions">
           {showPreviewToolbarControls ? (
@@ -10385,7 +10435,7 @@ function HtmlViewer({
           <div className="viewer-empty">{t('fileViewer.loading')}</div>
         ) : mode === 'preview' ? (
           <div
-            className={`${manualEditMode ? 'manual-edit-workspace' : commentPreviewLayoutClass} preview-viewport preview-viewport-${previewViewport}${drawOverlayOpen ? ' preview-draw-active' : ''}`}
+            className={`${manualEditMode ? 'manual-edit-workspace' : commentPreviewLayoutClass}${carouselDockActive ? ' carousel-editor-layer-active' : ''} preview-viewport preview-viewport-${previewViewport}${drawOverlayOpen ? ' preview-draw-active' : ''}`}
             data-testid={manualEditMode ? undefined : 'comment-preview-layout'}
             style={previewViewportStyle(previewViewport, previewScale, boardPreviewCanvasSize, boardPreviewScaleOptions)}
             onMouseLeave={manualEditMode ? clearManualEditHover : undefined}
@@ -10675,6 +10725,14 @@ function HtmlViewer({
               : commentPortalId
                 ? null
                 : commentSidePanel}
+            {carouselDockActive ? (
+              <CarouselEditorPanel
+                projectId={projectId}
+                filesRefreshKey={filesRefreshKey}
+                onGoToSlide={(index) => postSlide('go', index)}
+                onClose={() => setCarouselEditorOpen(false)}
+              />
+            ) : null}
             {inspectMode && activeInspectTarget ? (
               <InspectPanel
                 target={activeInspectTarget}

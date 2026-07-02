@@ -289,6 +289,98 @@ export async function importCarouselProject(
   return (await resp.json()) as ImportCarouselResponse;
 }
 
+// Contrato slides.json (V02/V03) do lado do editor. Espelho estrutural do
+// CarouselDeck do daemon, mas com index signatures para que campos que o
+// painel não edita (componentes, chaves futuras do contrato) atravessem o
+// round-trip GET → edição → PUT intactos.
+export interface CarouselSlideCta {
+  instrucao?: string;
+  palavra?: string;
+  beneficio?: string;
+  [key: string]: unknown;
+}
+
+export interface CarouselSlideDoc {
+  ordem: number;
+  bg: string;
+  papel: string;
+  tipo?: string;
+  tag?: string;
+  headline?: string;
+  blocos?: string[];
+  componentes?: unknown[];
+  source?: string;
+  cta?: CarouselSlideCta | null;
+  imagem?: { tipo?: string; ref?: string | null; [key: string]: unknown };
+  [key: string]: unknown;
+}
+
+export interface CarouselDocument {
+  meta: {
+    handle: string;
+    marca?: string;
+    tipo_badge?: string;
+    framework: string;
+    tema?: string;
+    [key: string]: unknown;
+  };
+  brand_pack_ref?: string;
+  slides: CarouselSlideDoc[];
+  [key: string]: unknown;
+}
+
+// PUT 400 = contrato recusou o documento. `problems` carrega a lista
+// legível de violações (error.details.problems) para a UI listar sem
+// parsear a message concatenada.
+export class CarouselSaveError extends Error {
+  readonly problems: string[];
+  constructor(message: string, problems: string[]) {
+    super(message);
+    this.name = 'CarouselSaveError';
+    this.problems = problems;
+  }
+}
+
+export async function getCarouselDocument(
+  projectId: string,
+): Promise<{ document: CarouselDocument; entryFile: string }> {
+  const resp = await fetch(`/api/projects/${encodeURIComponent(projectId)}/carousel`);
+  if (!resp.ok) {
+    let message = 'Failed to load carousel document';
+    try {
+      const body = await resp.json();
+      if (body?.error?.message) message = body.error.message;
+    } catch { /* use default message */ }
+    throw new Error(message);
+  }
+  return (await resp.json()) as { document: CarouselDocument; entryFile: string };
+}
+
+export async function putCarouselDocument(
+  projectId: string,
+  document: CarouselDocument,
+): Promise<{ ok: boolean; slides: number }> {
+  const resp = await fetch(`/api/projects/${encodeURIComponent(projectId)}/carousel`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ document }),
+  });
+  if (!resp.ok) {
+    let message = 'Failed to save carousel document';
+    let problems: string[] = [];
+    try {
+      const body = await resp.json();
+      if (body?.error?.message) message = body.error.message;
+      const rawProblems = body?.error?.details?.problems;
+      if (Array.isArray(rawProblems)) {
+        problems = rawProblems.filter((item: unknown): item is string => typeof item === 'string');
+      }
+    } catch { /* use default message */ }
+    throw new CarouselSaveError(message, problems);
+  }
+  return (await resp.json()) as { ok: boolean; slides: number };
+}
+
 export async function importClaudeDesignZip(
   file: File,
 ): Promise<{ project: Project; conversationId: string; entryFile: string }> {

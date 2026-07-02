@@ -1,0 +1,275 @@
+/* Dock lateral do editor de carrossel (CarouselEditorPanel). Mesmo esquema de
+   grid do comment-side-dock: o preview vira a coluna fluida e o painel ocupa
+   uma coluna fixa à direita. Só tokens var(--*) — a skin vem do root-theme. */
+
+.carousel-editor-layer-active {
+  --carousel-editor-dock-width: 320px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--carousel-editor-dock-width);
+  gap: 12px;
+  padding: 8px;
+  overflow: hidden;
+}
+
+.carousel-editor-layer-active .comment-preview-canvas {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+}
+
+.carousel-editor-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  color: var(--text);
+  overflow: hidden;
+  font-size: 12.5px;
+}
+
+.carousel-editor-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+
+.carousel-editor-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.carousel-editor-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 12px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.carousel-editor-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.carousel-editor-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.carousel-editor-slide {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  overflow: hidden;
+}
+
+.carousel-editor-slide.selected {
+  border-color: var(--accent);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.carousel-editor-slide-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 7px 4px 7px 10px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.carousel-editor-slide-label {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.carousel-editor-slide.selected .carousel-editor-slide-label {
+  color: var(--accent);
+}
+
+.carousel-editor-slide-excerpt {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.carousel-editor-slide-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 6px;
+  flex: 0 0 auto;
+}
+
+.carousel-editor-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.carousel-editor-icon-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  color: var(--text);
+}
+
+.carousel-editor-icon-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.carousel-editor-remove:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.carousel-editor-add-row {
+  display: flex;
+}
+
+.carousel-editor-add-row button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.carousel-editor-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.carousel-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.carousel-editor-field > span {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.carousel-editor-components {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-size: 11.5px;
+}
+
+.carousel-editor-image-ref {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+.carousel-editor-image-ref code {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.carousel-editor-markup-hint {
+  margin: 0;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.carousel-editor-error {
+  flex: 0 0 auto;
+  max-height: 140px;
+  overflow-y: auto;
+  margin: 0 12px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--danger) 8%, var(--bg-panel));
+  color: var(--text);
+  font-size: 11.5px;
+}
+
+.carousel-editor-error > span {
+  font-weight: 600;
+}
+
+.carousel-editor-error ul {
+  margin: 6px 0 0;
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.carousel-editor-error p {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.carousel-editor-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.carousel-editor-unsaved {
+  font-size: 11px;
+  color: var(--text-muted);
+}

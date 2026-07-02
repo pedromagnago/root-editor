@@ -48,6 +48,62 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
   const { insertConversation } = ctx.conversations;
   const { setTabs } = ctx.projectFiles;
   const { validateProjectDesignSystemId } = ctx.validation;
+
+  // Resolves a carousel image ref inside rootDir; null when it escapes —
+  // a hostile slides.json must not read arbitrary paths.
+  const resolveInside = (rootDir: string, ref: string): string | null => {
+    const resolved = path.resolve(rootDir, ref);
+    if (resolved !== rootDir && !resolved.startsWith(rootDir + path.sep)) {
+      return null;
+    }
+    return resolved;
+  };
+
+  const imageDataUri = (filePath: string, bytes: Buffer): string => {
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    const mime =
+      ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+    return `data:${mime};base64,${bytes.toString('base64')}`;
+  };
+
+  // Reads every referenced image once, async, so the resolver handed to the
+  // renderer is a pure map lookup — no sync I/O inside request handlers.
+  const loadCarouselImages = async (
+    rootDir: string,
+    deck: { slides: Array<{ imagem?: { tipo?: string; ref?: string | null } }> },
+  ): Promise<Map<string, string>> => {
+    const uris = new Map<string, string>();
+    for (const slide of deck.slides) {
+      const ref = slide.imagem?.tipo === 'local' ? slide.imagem.ref : null;
+      if (!ref || uris.has(ref)) continue;
+      const resolved = resolveInside(rootDir, ref);
+      if (!resolved) continue;
+      try {
+        uris.set(ref, imageDataUri(resolved, await fs.promises.readFile(resolved)));
+      } catch {
+        // Missing image renders without it, matching the V02 pipeline.
+      }
+    }
+    return uris;
+  };
+
+  // Shared gate for the carousel edit routes: the project must exist and be
+  // a materialized carousel import.
+  const loadCarouselProject = (
+    id: string,
+  ): { dir: string; entryFile: string } | null => {
+    const project = getProject(db, id);
+    if (!project) return null;
+    const metadata = (project.metadata ?? {}) as Record<string, unknown>;
+    if (metadata.importedFrom !== 'carousel') return null;
+    return {
+      dir: projectDir(PROJECTS_DIR, project.id),
+      entryFile:
+        typeof metadata.entryFile === 'string' && metadata.entryFile
+          ? metadata.entryFile
+          : 'deck.html',
+    };
+  };
   app.post(
     '/api/import/claude-design',
     importUpload.single('file'),
@@ -206,33 +262,49 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         throw err;
       }
 
-      // Images resolve relative to the piece folder and are embedded as
-      // base64 (deck HTML stays self-contained). Refs escaping the folder
-      // are refused — a hostile slides.json must not read arbitrary paths.
-      const resolveImage = (ref: string): string | null => {
-        const resolved = path.resolve(normalizedPath, ref);
-        if (resolved !== normalizedPath && !resolved.startsWith(normalizedPath + path.sep)) {
-          return null;
-        }
-        let bytes: Buffer;
-        try {
-          bytes = fs.readFileSync(resolved);
-        } catch {
-          return null;
-        }
-        const ext = resolved.split('.').pop()?.toLowerCase();
-        const mime =
-          ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-        return `data:${mime};base64,${bytes.toString('base64')}`;
-      };
-
-      const html = await buildCarouselDeckHtml(deck, { resolveImage });
-
       const id = randomId();
       const now = Date.now();
       const entryFile = 'deck.html';
       const dir = projectDir(PROJECTS_DIR, id);
-      await fs.promises.mkdir(dir, { recursive: true });
+      await fs.promises.mkdir(path.join(dir, 'assets'), { recursive: true });
+
+      // Copy referenced images into the project so it is self-contained:
+      // edits re-render the deck long after the source folder moved or
+      // changed. Each image is read once — the same bytes land in assets/
+      // and feed the base64 for this first render. On any failure the ref
+      // is left as-is; it simply resolves to no image at render time.
+      const copiedImages = new Map<string, string>();
+      const usedImageNames = new Set<string>();
+      const imageUris = new Map<string, string>();
+      for (const slide of deck.slides) {
+        const ref = slide.imagem?.tipo === 'local' ? slide.imagem.ref : null;
+        if (!ref) continue;
+        const resolved = resolveInside(normalizedPath, ref);
+        if (!resolved) continue;
+        let rel = copiedImages.get(resolved);
+        if (!rel) {
+          const base = path.basename(resolved);
+          let candidate = base;
+          let n = 1;
+          while (usedImageNames.has(candidate)) candidate = `${n++}-${base}`;
+          try {
+            const bytes = await fs.promises.readFile(resolved);
+            await fs.promises.writeFile(path.join(dir, 'assets', candidate), bytes);
+            imageUris.set(`assets/${candidate}`, imageDataUri(resolved, bytes));
+          } catch {
+            continue;
+          }
+          usedImageNames.add(candidate);
+          rel = `assets/${candidate}`;
+          copiedImages.set(resolved, rel);
+        }
+        slide.imagem = { ...slide.imagem, ref: rel };
+      }
+
+      const html = await buildCarouselDeckHtml(deck, {
+        resolveImage: (ref) => imageUris.get(ref) ?? null,
+      });
+
       const projectName =
         typeof name === 'string' && name.trim()
           ? name.trim()
@@ -258,9 +330,14 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         ),
         'utf8',
       );
-      // Provenance: keep the source contract next to the deck so the piece
-      // can be re-rendered or diffed against later edits.
-      await fs.promises.writeFile(path.join(dir, 'slides.json'), slidesRaw, 'utf8');
+      // The stored contract is the EDITABLE working copy (image refs
+      // rewritten to the project-local assets/); the untouched original
+      // stays in the source folder.
+      await fs.promises.writeFile(
+        path.join(dir, 'slides.json'),
+        JSON.stringify(deck, null, 2),
+        'utf8',
+      );
 
       const project = insertProject(db, {
         id,
@@ -287,6 +364,84 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
       });
       setTabs(db, id, [entryFile], entryFile);
       res.json({ project, conversationId: cid, entryFile, slides: deck.slides.length });
+    } catch (err: any) {
+      sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+    }
+  });
+
+  // Editable carousel contract. GET hands the working copy of slides.json
+  // to the editor panel; PUT validates the edited document against the
+  // contract, persists it, and re-renders deck.html through the same
+  // pipeline as import — the chokidar watcher then refreshes the preview
+  // over SSE on its own.
+  app.get('/api/projects/:id/carousel', async (req, res) => {
+    try {
+      const carousel = loadCarouselProject(req.params.id);
+      if (!carousel) return sendApiError(res, 404, 'NOT_FOUND', 'carousel project not found');
+      let raw: string;
+      try {
+        raw = await fs.promises.readFile(path.join(carousel.dir, 'slides.json'), 'utf8');
+      } catch {
+        return sendApiError(res, 404, 'NOT_FOUND', 'slides.json not found in project');
+      }
+      let document: unknown;
+      try {
+        document = JSON.parse(raw);
+      } catch (err: any) {
+        return sendApiError(
+          res,
+          500,
+          'INTERNAL',
+          `slides.json is corrupted: ${String(err?.message || err)}`,
+        );
+      }
+      res.json({ document, entryFile: carousel.entryFile });
+    } catch (err: any) {
+      sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+    }
+  });
+
+  app.put('/api/projects/:id/carousel', async (req, res) => {
+    try {
+      const carousel = loadCarouselProject(req.params.id);
+      if (!carousel) return sendApiError(res, 404, 'NOT_FOUND', 'carousel project not found');
+      const documentValue = (req.body || {}).document;
+      if (
+        !documentValue ||
+        typeof documentValue !== 'object' ||
+        Array.isArray(documentValue)
+      ) {
+        return sendApiError(
+          res,
+          400,
+          'BAD_REQUEST',
+          'document (slides.json content) required',
+        );
+      }
+      let deck;
+      try {
+        deck = parseCarouselSlides(documentValue);
+      } catch (err) {
+        if (err instanceof CarouselContractError) {
+          return sendApiError(res, 400, 'BAD_REQUEST', err.message, {
+            details: { problems: err.problems },
+          });
+        }
+        throw err;
+      }
+      const imageUris = await loadCarouselImages(carousel.dir, deck);
+      const html = await buildCarouselDeckHtml(deck, {
+        resolveImage: (ref) => imageUris.get(ref) ?? null,
+      });
+      // Contract first, render second: if the deck write fails, slides.json
+      // is still consistent and a retry re-renders from it.
+      await fs.promises.writeFile(
+        path.join(carousel.dir, 'slides.json'),
+        JSON.stringify(deck, null, 2),
+        'utf8',
+      );
+      await fs.promises.writeFile(path.join(carousel.dir, carousel.entryFile), html, 'utf8');
+      res.json({ ok: true, slides: deck.slides.length });
     } catch (err: any) {
       sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
     }
