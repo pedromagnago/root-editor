@@ -311,6 +311,7 @@ import { readOpenCodeServiceFailure } from './runtimes/opencode-log.js';
 import { createAgentStderrVisibilityFilter } from './amr-stderr-filter.js';
 import { createQoderStreamHandler } from './runtimes/qoder-stream.js';
 import { subscribe as subscribeFileEvents } from './project-watchers.js';
+import { startCarouselAutoRender } from './carousel-autorender.js';
 import { importFigmaFromBytes } from './figma/figma-import.js';
 import { renderDesignSystemPreview } from './design-systems/preview.js';
 import { renderDesignSystemShowcase } from './design-systems/showcase.js';
@@ -4266,6 +4267,19 @@ export async function startServer({
     projectFiles: projectFileDeps,
     terminals: terminalService,
   });
+  // Auto-render service: re-renders a carousel deck when the agent writes
+  // slides.json into the project cwd (the carrossel-root skill's hand-off).
+  const carouselAutoRender = startCarouselAutoRender({
+    projectsDir: PROJECTS_DIR,
+    projectDir,
+    listProjects: () => listProjects(db) as Array<{ id: string; name?: string; metadata?: Record<string, unknown> | null }>,
+    getProject: (id) => (getProject(db, id) ?? undefined) as { id: string; name?: string; metadata?: Record<string, unknown> | null } | undefined,
+    updateProject: (id, patch) => updateProject(db, id, patch),
+    setTabs: (id, tabs, active) => setTabs(db, id, tabs, active),
+    subscribe: subscribeFileEvents,
+    randomId,
+  });
+
   registerImportRoutes(app, {
     db,
     http: httpDeps,
@@ -4279,6 +4293,7 @@ export async function startServer({
     conversations: conversationDeps,
     projectFiles: projectFileDeps,
     validation: validationDeps,
+    carouselAutoRender,
   });
 
   // Resource catalog

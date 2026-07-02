@@ -8,7 +8,7 @@
 // Diferença deliberada vs render.mjs: todo texto do contrato é escapado; só
 // <strong>/<em> passam (o contrato permite ênfase inline, nada além disso).
 
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -313,4 +313,80 @@ export async function buildCarouselDeckHtml(
     `<style>${css}</style></head>` +
     `<body><div style="display:flex;flex-direction:column;gap:24px;align-items:center;padding:24px;">${body}</div></body></html>`
   );
+}
+
+// ---- Shared render helpers (import route + auto-render service) ----
+
+// Resolves an image ref inside rootDir; null when it escapes — a hostile
+// slides.json must not read arbitrary paths.
+export function resolveInside(rootDir: string, ref: string): string | null {
+  const resolved = nodePath.resolve(rootDir, ref);
+  if (resolved !== rootDir && !resolved.startsWith(rootDir + nodePath.sep)) {
+    return null;
+  }
+  return resolved;
+}
+
+export function imageDataUri(filePath: string, bytes: Buffer): string {
+  const ext = filePath.split('.').pop()?.toLowerCase();
+  const mime =
+    ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
+  return `data:${mime};base64,${bytes.toString('base64')}`;
+}
+
+// Reads every referenced image once (async) so the resolver handed to the
+// renderer is a pure map lookup — no sync I/O in request/render paths.
+export async function loadCarouselImages(
+  rootDir: string,
+  deck: Pick<CarouselDeck, 'slides'>,
+): Promise<Map<string, string>> {
+  const uris = new Map<string, string>();
+  for (const slide of deck.slides) {
+    const ref = slide.imagem?.tipo === 'local' ? slide.imagem.ref : null;
+    if (!ref || uris.has(ref)) continue;
+    const resolved = resolveInside(rootDir, ref);
+    if (!resolved) continue;
+    try {
+      uris.set(ref, imageDataUri(resolved, await readFile(resolved)));
+    } catch {
+      // Missing image renders without it, matching the V02 pipeline.
+    }
+  }
+  return uris;
+}
+
+// Renders deck.html into `dir` from a validated deck. Images resolve from
+// the project dir unless prebuilt URIs are supplied (import already read
+// them while copying). Returns the slide count.
+export async function writeCarouselDeck(
+  dir: string,
+  entryFile: string,
+  deck: CarouselDeck,
+  imageUris?: Map<string, string>,
+): Promise<{ slides: number }> {
+  const uris = imageUris ?? (await loadCarouselImages(dir, deck));
+  const html = await buildCarouselDeckHtml(deck, {
+    resolveImage: (ref) => uris.get(ref) ?? null,
+  });
+  await writeFile(nodePath.join(dir, entryFile), html, 'utf8');
+  return { slides: deck.slides.length };
+}
+
+export function carouselArtifactJson(
+  projectName: string,
+  entryFile: string,
+  isoNow: string,
+): Record<string, unknown> {
+  return {
+    version: 1,
+    kind: 'deck',
+    title: projectName,
+    entry: entryFile,
+    renderer: 'deck-html',
+    status: 'complete',
+    exports: ['html', 'pdf', 'zip'],
+    createdAt: isoNow,
+    updatedAt: isoNow,
+    metadata: { source: 'carousel' },
+  };
 }

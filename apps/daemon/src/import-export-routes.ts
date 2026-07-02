@@ -24,14 +24,26 @@ import { parseOrchestratorWorkspace } from './workspace-contract.js';
 import {
   CarouselContractError,
   buildCarouselDeckHtml,
+  carouselArtifactJson,
+  imageDataUri,
+  loadCarouselImages,
   parseCarouselSlides,
+  resolveInside,
+  writeCarouselDeck,
 } from './carousel-import.js';
 import { logCarousel } from './logging/carousel.js';
+import type { CarouselAutoRender } from './carousel-autorender.js';
 
-export interface RegisterImportRoutesDeps extends RouteDeps<'db' | 'http' | 'uploads' | 'node' | 'ids' | 'paths' | 'imports' | 'auth' | 'projectStore' | 'conversations' | 'projectFiles' | 'validation'> {}
+export interface RegisterImportRoutesDeps extends RouteDeps<'db' | 'http' | 'uploads' | 'node' | 'ids' | 'paths' | 'imports' | 'auth' | 'projectStore' | 'conversations' | 'projectFiles' | 'validation'> {
+  // The auto-render service, when running, watches carousel projects for
+  // agent-written slides.json. Routes notify it of their own renders so it
+  // does not redundantly re-render right after import/PUT.
+  carouselAutoRender?: CarouselAutoRender;
+}
 
 export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps) {
   const { db } = ctx;
+  const carouselAutoRender = ctx.carouselAutoRender;
   const { sendApiError } = ctx.http;
   const { importUpload } = ctx.uploads;
   const { fs, path } = ctx.node;
@@ -49,44 +61,6 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
   const { insertConversation } = ctx.conversations;
   const { setTabs } = ctx.projectFiles;
   const { validateProjectDesignSystemId } = ctx.validation;
-
-  // Resolves a carousel image ref inside rootDir; null when it escapes —
-  // a hostile slides.json must not read arbitrary paths.
-  const resolveInside = (rootDir: string, ref: string): string | null => {
-    const resolved = path.resolve(rootDir, ref);
-    if (resolved !== rootDir && !resolved.startsWith(rootDir + path.sep)) {
-      return null;
-    }
-    return resolved;
-  };
-
-  const imageDataUri = (filePath: string, bytes: Buffer): string => {
-    const ext = filePath.split('.').pop()?.toLowerCase();
-    const mime =
-      ext === 'png' ? 'image/png' : ext === 'webp' ? 'image/webp' : 'image/jpeg';
-    return `data:${mime};base64,${bytes.toString('base64')}`;
-  };
-
-  // Reads every referenced image once, async, so the resolver handed to the
-  // renderer is a pure map lookup — no sync I/O inside request handlers.
-  const loadCarouselImages = async (
-    rootDir: string,
-    deck: { slides: Array<{ imagem?: { tipo?: string; ref?: string | null } }> },
-  ): Promise<Map<string, string>> => {
-    const uris = new Map<string, string>();
-    for (const slide of deck.slides) {
-      const ref = slide.imagem?.tipo === 'local' ? slide.imagem.ref : null;
-      if (!ref || uris.has(ref)) continue;
-      const resolved = resolveInside(rootDir, ref);
-      if (!resolved) continue;
-      try {
-        uris.set(ref, imageDataUri(resolved, await fs.promises.readFile(resolved)));
-      } catch {
-        // Missing image renders without it, matching the V02 pipeline.
-      }
-    }
-    return uris;
-  };
 
   // Shared gate for the carousel edit routes: the project must exist and be
   // a materialized carousel import.
@@ -336,32 +310,17 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
       await fs.promises.writeFile(path.join(dir, entryFile), html, 'utf8');
       await fs.promises.writeFile(
         path.join(dir, `${entryFile}.artifact.json`),
-        JSON.stringify(
-          {
-            version: 1,
-            kind: 'deck',
-            title: projectName,
-            entry: entryFile,
-            renderer: 'deck-html',
-            status: 'complete',
-            exports: ['html', 'pdf', 'zip'],
-            createdAt: new Date(now).toISOString(),
-            updatedAt: new Date(now).toISOString(),
-            metadata: { source: 'carousel' },
-          },
-          null,
-          2,
-        ),
+        JSON.stringify(carouselArtifactJson(projectName, entryFile, new Date(now).toISOString()), null, 2),
         'utf8',
       );
       // The stored contract is the EDITABLE working copy (image refs
       // rewritten to the project-local assets/); the untouched original
       // stays in the source folder.
-      await fs.promises.writeFile(
-        path.join(dir, 'slides.json'),
-        JSON.stringify(deck, null, 2),
-        'utf8',
-      );
+      const storedSlides = JSON.stringify(deck, null, 2);
+      await fs.promises.writeFile(path.join(dir, 'slides.json'), storedSlides, 'utf8');
+      // Own write — mark it before the watcher can see it so the initial
+      // 'add' event on ensureWatching does not redundantly re-render.
+      carouselAutoRender?.noteRendered(id, storedSlides);
 
       const project = insertProject(db, {
         id,
@@ -387,6 +346,7 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         updatedAt: now,
       });
       setTabs(db, id, [entryFile], entryFile);
+      carouselAutoRender?.ensureWatching(id);
       logCarousel({
         event: 'import_succeeded',
         traceId,
@@ -479,18 +439,16 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         }
         throw err;
       }
-      const imageUris = await loadCarouselImages(carousel.dir, deck);
-      const html = await buildCarouselDeckHtml(deck, {
-        resolveImage: (ref) => imageUris.get(ref) ?? null,
-      });
       // Contract first, render second: if the deck write fails, slides.json
       // is still consistent and a retry re-renders from it.
+      const storedSlides = JSON.stringify(deck, null, 2);
       await fs.promises.writeFile(
         path.join(carousel.dir, 'slides.json'),
-        JSON.stringify(deck, null, 2),
+        storedSlides,
         'utf8',
       );
-      await fs.promises.writeFile(path.join(carousel.dir, carousel.entryFile), html, 'utf8');
+      carouselAutoRender?.noteRendered(req.params.id, storedSlides);
+      await writeCarouselDeck(carousel.dir, carousel.entryFile, deck);
       logCarousel({
         event: 'edit_succeeded',
         traceId,

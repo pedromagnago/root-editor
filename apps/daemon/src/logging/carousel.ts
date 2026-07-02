@@ -61,6 +61,22 @@ export type CarouselLogEvent =
       format: string;
       reason: string;
       durationMs: number;
+    }
+  | {
+      event: 'autorender';
+      traceId: string;
+      projectId: string;
+      slides: number;
+      firstRender: boolean;
+      durationMs: number;
+    }
+  | {
+      event: 'autorender_rejected';
+      traceId: string;
+      projectId: string;
+      reason: 'contract';
+      problems: number;
+      durationMs: number;
     };
 
 export function logCarousel(e: CarouselLogEvent): void {
