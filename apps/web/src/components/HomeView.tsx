@@ -228,6 +228,7 @@ interface Props {
   // through so the dispatcher can stay declarative.
   onOpenNewProject?: (tab: 'template') => void;
   onStartBlankProject?: () => Promise<void> | void;
+  onCreateCarousel?: (theme?: string) => Promise<void> | void;
   promptHandoff?: HomePromptHandoff | null;
   skills?: SkillSummary[];
   skillsLoading?: boolean;
@@ -298,6 +299,7 @@ export function HomeView({
   onOpenMcp,
   onOpenNewProject,
   onStartBlankProject,
+  onCreateCarousel,
   promptHandoff,
   skills = EMPTY_SKILLS,
   skillsLoading = false,
@@ -2082,6 +2084,9 @@ export function HomeView({
         onStartBlankProject={() => {
           void startBlankProject();
         }}
+        {...(onCreateCarousel
+          ? { onCreateCarousel: () => { void onCreateCarousel(); } }
+          : {})}
         executionSwitcher={executionSwitcher}
       />
 

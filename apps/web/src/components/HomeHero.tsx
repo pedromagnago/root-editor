@@ -228,6 +228,9 @@ interface Props {
   // "…or start a blank project" — creates an empty project directly (no dialog,
   // no design system / template / prompt) and enters it. Omit to hide the link.
   onStartBlankProject?: () => void;
+  // "Novo carrossel" — creates a project driven by the carrossel-root skill
+  // and drops the user in the chat to describe the theme. Omit to hide.
+  onCreateCarousel?: () => void;
   executionSwitcher?: ReactNode;
 }
 
@@ -351,6 +354,7 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
     onClearWorkingDir,
     onExamplePromptStatusChange,
     onStartBlankProject,
+    onCreateCarousel,
     executionSwitcher,
   },
   ref,
@@ -1924,6 +1928,17 @@ export const HomeHero = forwardRef<HomeHeroHandle, Props>(function HomeHero(
               }}
             />
           </RailGroup>
+          {onCreateCarousel ? (
+            <button
+              type="button"
+              className="home-hero__new-carousel"
+              data-testid="home-hero-new-carousel"
+              onClick={onCreateCarousel}
+            >
+              <Icon name="sparkles" size={13} aria-hidden />
+              {t('newproj.createCarousel')}
+            </button>
+          ) : null}
           {onStartBlankProject ? (
             <button
               type="button"

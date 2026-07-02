@@ -891,6 +891,7 @@ export function EntryShell({
                   openNewProject(tab);
                 }}
                 onStartBlankProject={startBlankProjectFromRail}
+                {...(onCreateCarousel ? { onCreateCarousel } : {})}
                 promptHandoff={homePromptHandoff}
                 skills={skills}
                 skillsLoading={skillsLoading}
