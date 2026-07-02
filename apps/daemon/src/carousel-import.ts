@@ -75,8 +75,16 @@ export interface CarouselDeck {
     tema?: string;
   };
   brand_pack_ref?: string;
+  versao?: number;
   slides: CarouselSlide[];
 }
+
+// The slides.json contract version this build writes and reads. Bumped only
+// on a breaking shape change. Compatibility policy: a document with no
+// `versao` is treated as current (the field is new); a document one major
+// behind (N-1) is still accepted; anything newer than this build is refused
+// with a clear message rather than silently mis-rendering.
+export const CAROUSEL_CONTRACT_VERSION = 1;
 
 export class CarouselContractError extends Error {
   readonly problems: string[];
@@ -97,6 +105,16 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 export function parseCarouselSlides(raw: unknown): CarouselDeck {
   const errs: string[] = [];
   if (!isPlainObject(raw)) throw new CarouselContractError(['root must be an object']);
+
+  if (raw.versao != null) {
+    if (typeof raw.versao !== 'number' || !Number.isInteger(raw.versao) || raw.versao < 1) {
+      errs.push('versao must be a positive integer');
+    } else if (raw.versao > CAROUSEL_CONTRACT_VERSION) {
+      throw new CarouselContractError([
+        `slides.json versao ${raw.versao} is newer than this build supports (${CAROUSEL_CONTRACT_VERSION}); update the editor`,
+      ]);
+    }
+  }
 
   const meta = raw.meta;
   if (!isPlainObject(meta)) {
@@ -178,7 +196,9 @@ export function parseCarouselSlides(raw: unknown): CarouselDeck {
   if (errs.length) throw new CarouselContractError(errs);
 
   const deck = raw as unknown as CarouselDeck;
-  return { ...deck, slides };
+  // Stamp the version so every stored/rendered contract is self-describing,
+  // even when the skill wrote it without one.
+  return { ...deck, versao: deck.versao ?? CAROUSEL_CONTRACT_VERSION, slides };
 }
 
 const esc = (s: unknown) =>
