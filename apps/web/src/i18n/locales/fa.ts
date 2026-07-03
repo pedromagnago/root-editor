@@ -672,6 +672,8 @@ export const fa: Dict = {
   'homeHero.chip.prototype': 'نمونه اولیه',
   'homeHero.chip.liveArtifact': 'آرتیفکت زنده',
   'homeHero.chip.deck': 'اسلاید',
+  'homeHero.chip.carrossel': "Carousel",
+  'homeHero.chip.carrosselDesc': "Instagram carousel, guided by AI",
   'homeHero.chip.image': 'تصویر',
   'homeHero.chip.video': 'ویدیو',
   'homeHero.chip.hyperframes': 'HyperFrames',

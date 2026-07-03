@@ -1693,6 +1693,10 @@ export function HomeView({
         navigate({ kind: 'design-system-create' });
         return;
       }
+      case 'create-carousel': {
+        if (onCreateCarousel) void onCreateCarousel();
+        return;
+      }
       case 'open-template-picker': {
         if (!onOpenNewProject) {
           setError('Template picker is not available in this shell.');
@@ -2084,9 +2088,6 @@ export function HomeView({
         onStartBlankProject={() => {
           void startBlankProject();
         }}
-        {...(onCreateCarousel
-          ? { onCreateCarousel: () => { void onCreateCarousel(); } }
-          : {})}
         executionSwitcher={executionSwitcher}
       />
 

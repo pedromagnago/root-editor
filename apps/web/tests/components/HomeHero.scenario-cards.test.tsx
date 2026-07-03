@@ -81,8 +81,9 @@ describe('HomeHero scenario cards', () => {
     expect(deck.textContent).toContain('Presentations & pitch decks');
   });
 
-  it('leads the create rail with the slide deck', () => {
-    expect(orderedCreateChips()[0]?.id).toBe('deck');
+  it('leads the create rail with the Root carousel, then the slide deck', () => {
+    expect(orderedCreateChips()[0]?.id).toBe('carrossel');
+    expect(orderedCreateChips()[1]?.id).toBe('deck');
   });
 
   it('adds the finer-grained scenarios as create cards routed to a scenario plugin', () => {

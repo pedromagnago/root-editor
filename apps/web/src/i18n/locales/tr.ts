@@ -672,6 +672,8 @@ export const tr: Dict = {
   'homeHero.chip.prototype': 'Prototip',
   'homeHero.chip.liveArtifact': 'Canlı çıktı',
   'homeHero.chip.deck': 'Sunum destesi',
+  'homeHero.chip.carrossel': "Carousel",
+  'homeHero.chip.carrosselDesc': "Instagram carousel, guided by AI",
   'homeHero.chip.image': 'Görsel',
   'homeHero.chip.video': 'Video',
   'homeHero.chip.hyperframes': 'HyperFrames',

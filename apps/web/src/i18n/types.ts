@@ -1069,6 +1069,8 @@ export interface Dict {
   'homeHero.chip.prototype': string;
   'homeHero.chip.liveArtifact': string;
   'homeHero.chip.deck': string;
+  'homeHero.chip.carrossel': string;
+  'homeHero.chip.carrosselDesc': string;
   'homeHero.chip.image': string;
   'homeHero.chip.video': string;
   'homeHero.chip.hyperframes': string;

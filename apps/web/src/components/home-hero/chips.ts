@@ -54,7 +54,10 @@ export type ChipAction =
   | { kind: 'open-template-picker' }
   // Routes the user into the Brand Kit tab and opens its New Brand Kit modal,
   // reusing the same extraction flow as the tab's own "New Brand Kit" button.
-  | { kind: 'create-brand-kit' };
+  | { kind: 'create-brand-kit' }
+  // Creates a carousel project bound to the carrossel-root skill and drops the
+  // user in the chat to describe the theme (no plugin scenario to seed).
+  | { kind: 'create-carousel' };
 
 // Two intent groups: "create" = produce a design artifact, "migrate" =
 // lower-row starter shortcuts such as plugin authoring, imports, and
@@ -79,6 +82,19 @@ export interface HomeHeroChip {
 }
 
 export const HOME_HERO_CHIPS: ReadonlyArray<HomeHeroChip> = [
+  {
+    id: 'carrossel',
+    // Root's flagship flow. The rendered label/description are localized via
+    // `homeHero.chip.carrossel` / `homeHero.chip.carrosselDesc`.
+    label: 'Carousel',
+    icon: 'sparkles',
+    group: 'create',
+    description: 'Instagram carousel, guided by AI',
+    hint: 'Describe a theme and the editorial pipeline builds an editable carousel.',
+    // Not plugin-bound: dispatches straight to POST /api/projects/carousel via
+    // onCreateCarousel, then drops the user in the chat to describe the theme.
+    action: { kind: 'create-carousel' },
+  },
   {
     id: 'create-brand-kit',
     // Inline English fallback only — the rendered label is localized through
@@ -338,6 +354,7 @@ export function chipsForGroup(group: ChipGroup): HomeHeroChip[] {
 // rather than seeding a scenario plugin. Any create chip not listed keeps its
 // catalog order after the explicit entries (see `orderedCreateChips`).
 export const CREATE_RAIL_ORDER = [
+  'carrossel',
   'deck',
   'prototype',
   'wireframe',
@@ -354,7 +371,7 @@ export const CREATE_RAIL_ORDER = [
 // Video and Audio are the trailing pure-media outputs in CREATE_RAIL_ORDER and
 // the least central to the design-system story, so they are the first to drop
 // when keeping the teaser chips to a single tidy row.
-const ONBOARDING_ARTIFACT_OMIT = new Set<string>(['video', 'audio']);
+const ONBOARDING_ARTIFACT_OMIT = new Set<string>(['carrossel', 'video', 'audio']);
 
 // The artifact chips shown on the onboarding "build a design system" step — a
 // curated single-row subset of the create rail. Derived from CREATE_RAIL_ORDER

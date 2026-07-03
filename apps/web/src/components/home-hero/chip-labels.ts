@@ -14,6 +14,7 @@ type Translate = (key: keyof Dict) => string;
 
 export function homeHeroChipLabel(chipId: string, t: Translate): string {
   switch (chipId) {
+    case 'carrossel': return t('homeHero.chip.carrossel');
     case 'prototype': return t('homeHero.chip.prototype');
     case 'wireframe': return t('homeHero.chip.wireframe');
     case 'mobile': return t('homeHero.chip.mobile');

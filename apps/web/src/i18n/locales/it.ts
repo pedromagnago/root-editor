@@ -672,6 +672,8 @@ export const it: Dict = {
   'homeHero.chip.prototype': 'Prototipo',
   'homeHero.chip.liveArtifact': 'Artefatto live',
   'homeHero.chip.deck': 'Presentazione',
+  'homeHero.chip.carrossel': "Carousel",
+  'homeHero.chip.carrosselDesc': "Instagram carousel, guided by AI",
   'homeHero.chip.image': 'Immagine',
   'homeHero.chip.video': 'Video',
   'homeHero.chip.hyperframes': 'HyperFrames',

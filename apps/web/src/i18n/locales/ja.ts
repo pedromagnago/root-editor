@@ -672,6 +672,8 @@ export const ja: Dict = {
   'homeHero.chip.prototype': 'プロトタイプ',
   'homeHero.chip.liveArtifact': 'ライブアーティファクト',
   'homeHero.chip.deck': 'スライドデッキ',
+  'homeHero.chip.carrossel': "Carousel",
+  'homeHero.chip.carrosselDesc': "Instagram carousel, guided by AI",
   'homeHero.chip.image': '画像',
   'homeHero.chip.video': '動画',
   'homeHero.chip.hyperframes': 'HyperFrames',
