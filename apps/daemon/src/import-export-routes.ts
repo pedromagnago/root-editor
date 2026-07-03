@@ -164,7 +164,11 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         skillId: CARROSSEL_SKILL_ID,
         designSystemId: null,
         pendingPrompt: trimmedTheme || null,
-        metadata: { kind: 'prototype', carousel: true },
+        // No `kind`: every defined ProjectKind binds a default scenario plugin
+        // (prototype -> example-web-prototype, deck -> example-simple-deck, …)
+        // whose onboarding flow would run INSTEAD of the carrossel-root skill.
+        // Omitting kind resolves to no scenario plugin, so only the skill runs.
+        metadata: { carousel: true },
         createdAt: now,
         updatedAt: now,
       });
