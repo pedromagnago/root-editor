@@ -1,0 +1,66 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @font-face {
+    font-family: 'JetBrains Mono';
+    font-weight: 800;
+    src: url('../../../apps/web/public/fonts/root/jetbrains-mono-800.woff2') format('woff2');
+  }
+  html, body { margin: 0; padding: 0; background: transparent; }
+  /* macOS Big Sur icon grid: canvas 1024, squircle ~824x824 centered,
+     corner radius ~185. Identidade: ink + grid terminal + R lime +
+     glow magenta (a mesma assinatura da skin/splash da Root). */
+  .canvas { position: relative; width: 1024px; height: 1024px; }
+  .tile {
+    position: absolute; inset: 100px;
+    border-radius: 185px;
+    background: #070A08;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 10px rgba(28,48,16,0.45);
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(155,219,31,.08) 3px, transparent 3px),
+      linear-gradient(90deg, rgba(155,219,31,.08) 3px, transparent 3px);
+    background-size: 103px 103px;
+    background-position: 51px 51px;
+  }
+  .glow {
+    position: absolute; right: -180px; top: -180px;
+    width: 560px; height: 560px;
+    background: radial-gradient(circle, rgba(255,31,107,.32), transparent 68%);
+  }
+  .r {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 560px;
+    color: #9BDB1F;
+    text-shadow: 0 0 90px rgba(155,219,31,.35);
+    /* baseline óptica: o R do JetBrains Mono pede um leve ajuste pra cima */
+    padding-bottom: 30px;
+    padding-right: 70px;
+  }
+  .cursor {
+    position: absolute;
+    left: 561px; bottom: 218px;
+    width: 132px; height: 48px;
+    background: #FF1F6B;
+  }
+</style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="tile">
+      <div class="grid"></div>
+      <div class="glow"></div>
+      <div class="r">R</div>
+      <div class="cursor"></div>
+    </div>
+  </div>
+</body>
+</html>
