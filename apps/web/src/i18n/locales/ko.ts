@@ -1409,6 +1409,8 @@ export const ko: Dict = {
   'newproj.importingClaudeZip': '가져오는 중…',
   'newproj.importCarousel': "Import carousel (slides.json)",
   'newproj.createCarousel': "New carousel",
+  'newproj.carouselBrandLabel': "Brand",
+  'newproj.carouselBrandSwitchError': "Failed to switch the active brand",
   'newproj.creatingCarousel': "Creating…",
   'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': '기본적으로 프로젝트는 나만 볼 수 있습니다.',

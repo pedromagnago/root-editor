@@ -1,0 +1,27 @@
+{
+  "$schema": "brandpack/v1",
+  "slug": "root",
+  "nome": "ROOT",
+  "handle": "@root",
+  "nicho": "criação de conteúdo / IA",
+  "fonte_canonica": "brand guide ROOT",
+  "voice_tone": {
+    "descricao": "Direto, técnico, com identidade hacker. Sem floreio, sem 2ª pessoa. Provocação por descoberta, nunca acusação."
+  },
+  "rules": {
+    "aprovados": ["método", "processo", "operador", "identidade", "voz própria", "camada antes do prompt"],
+    "proibidos": ["solução completa", "disruptivo", "2ª pessoa", "alavancar", "potencializar"]
+  },
+  "visual_tokens": {
+    "cores": { "primaria": "#9BDB1F", "acento": "#FF1F6B", "sucesso": "#C4FF2E", "texto": "#DFFFE8", "bg": "#070A08" },
+    "fontes": { "headline": "JetBrains Mono", "body": "Space Grotesk" }
+  },
+  "render_tokens": {
+    "P": "#9BDB1F", "PL": "#C4FF2E", "PD": "#1C3010",
+    "LB": "#DFFFE8", "DB": "#070A08", "LR": "rgba(28,48,16,0.45)",
+    "ALERT": "#FF1F6B", "OK": "#C4FF2E",
+    "F_HEAD": "JetBrains Mono", "F_BODY": "Space Grotesk"
+  },
+  "skin": "skin.css",
+  "quality": { "prontidao": 90, "fundamentais_ok": true, "status": "pronto", "warnings": [] }
+}

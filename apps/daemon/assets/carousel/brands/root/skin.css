@@ -1,0 +1,42 @@
+/* ROOT — assinatura visual: terminal/hacker, verde-limão + magenta, mono headline */
+
+.slide.dark, .slide.gradient { color: #DFFFE8; }
+.slide.capa { background: #070A08; }
+
+/* grid terminal de fundo (capa + slides escuros) */
+.slide.capa .skin-layer,
+.slide.dark .skin-layer {
+  background-image:
+    linear-gradient(rgba(155, 219, 31, .07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(155, 219, 31, .07) 1px, transparent 1px);
+  background-size: 26px 26px;
+}
+
+/* glow magenta no canto superior da capa */
+.slide.capa .skin-layer::after {
+  content: ""; position: absolute; right: -70px; top: -70px;
+  width: 260px; height: 260px;
+  background: radial-gradient(circle, rgba(255, 31, 107, .35), transparent 70%);
+}
+
+/* capa em mono, verde-limão, com destaque bright */
+.capa-headline { color: #9BDB1F; font-weight: 800; letter-spacing: -1px; }
+.capa-headline em { color: #C4FF2E; text-decoration: none; }
+.capa .badge { background: #9BDB1F; color: #070A08; }
+
+/* tags em magenta (claro) / verde-bright (escuro) */
+.tag { color: #FF1F6B; }
+.slide.dark .tag, .slide.gradient .tag { color: #C4FF2E; opacity: 1; }
+
+/* destaques no corpo — contraste por fundo */
+.slide.light .body em, .slide.light .h1 em { color: #15600F; }            /* verde escuro legível no mint */
+.slide.dark .body em, .slide.gradient .body em, .slide.alert .body em { color: #C4FF2E; }
+.body strong { color: inherit; }
+
+/* cards/insight com cara de painel ROOT */
+.insight-box { border-left-color: #FF1F6B; background: rgba(155, 219, 31, .06); }
+.data-pill { background: rgba(155, 219, 31, .08); }
+.data-table td:last-child strong { color: #FF1F6B; }
+
+/* CTA ROOT */
+.cta-button { background: #9BDB1F; color: #070A08; }

@@ -1524,6 +1524,8 @@ export const zhTW: Dict = {
   "newproj.importingClaudeZip": "正在匯入…",
   "newproj.importCarousel": "Import carousel (slides.json)",
   "newproj.createCarousel": "New carousel",
+  "newproj.carouselBrandLabel": "Brand",
+  "newproj.carouselBrandSwitchError": "Failed to switch the active brand",
   "newproj.creatingCarousel": "Creating…",
   "newproj.importingCarousel": "Importing…",
   "newproj.privacyFooter": "預設情況下只有你能看到自己的專案。",

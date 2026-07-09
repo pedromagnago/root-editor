@@ -1409,6 +1409,8 @@ export const fa: Dict = {
   'newproj.importingClaudeZip': 'در حال وارد کردن…',
   'newproj.importCarousel': "Import carousel (slides.json)",
   'newproj.createCarousel': "New carousel",
+  'newproj.carouselBrandLabel': "Brand",
+  'newproj.carouselBrandSwitchError': "Failed to switch the active brand",
   'newproj.creatingCarousel': "Creating…",
   'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': 'به طور پیش‌فرض فقط شما می‌توانید پروژه خود را ببینید.',

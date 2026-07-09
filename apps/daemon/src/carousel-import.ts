@@ -12,6 +12,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveCarouselBrandCss } from './carousel-brand.js';
+
 const BASE_SKIN_CSS_PATH = nodePath.resolve(
   nodePath.dirname(fileURLToPath(import.meta.url)),
   '../assets/carousel/base-skin.root.css',
@@ -114,6 +116,10 @@ export function parseCarouselSlides(raw: unknown): CarouselDeck {
         `slides.json versao ${raw.versao} is newer than this build supports (${CAROUSEL_CONTRACT_VERSION}); update the editor`,
       ]);
     }
+  }
+
+  if (raw.brand_pack_ref != null && typeof raw.brand_pack_ref !== 'string') {
+    errs.push('brand_pack_ref must be a string (brand slug or brand.json path)');
   }
 
   const meta = raw.meta;
@@ -377,7 +383,9 @@ export async function loadCarouselImages(
 
 // Renders deck.html into `dir` from a validated deck. Images resolve from
 // the project dir unless prebuilt URIs are supplied (import already read
-// them while copying). Returns the slide count.
+// them while copying). The skin honors deck.brand_pack_ref (marca do
+// cliente), degrading to the active brand and then the baked Root skin.
+// Returns the slide count.
 export async function writeCarouselDeck(
   dir: string,
   entryFile: string,
@@ -387,6 +395,7 @@ export async function writeCarouselDeck(
   const uris = imageUris ?? (await loadCarouselImages(dir, deck));
   const html = await buildCarouselDeckHtml(deck, {
     resolveImage: (ref) => uris.get(ref) ?? null,
+    css: await resolveCarouselBrandCss(deck.brand_pack_ref),
   });
   await writeFile(nodePath.join(dir, entryFile), html, 'utf8');
   return { slides: deck.slides.length };

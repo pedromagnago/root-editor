@@ -1,7 +1,7 @@
 import type http from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
@@ -158,6 +158,68 @@ describe('POST /api/import/carousel', () => {
       'utf8',
     );
     expect(html).not.toContain('data:image/png;base64,');
+  });
+
+  it('stamps the brand slug and renders with the client brand skin', async () => {
+    const home = makePieceDir();
+    process.env.MAQUINA_CARROSSEL_HOME = home;
+    try {
+      const brandDir = path.join(home, 'marcas', 'acme');
+      await mkdir(brandDir, { recursive: true });
+      await writeFile(
+        path.join(brandDir, 'brand.json'),
+        JSON.stringify({
+          $schema: 'brandpack/v1',
+          slug: 'acme',
+          nome: 'ACME',
+          handle: '@acme',
+          visual_tokens: { cores: { primaria: '#0057FF' } },
+        }),
+        'utf8',
+      );
+      await writeFile(path.join(brandDir, 'skin.css'), '/* acme skin */', 'utf8');
+
+      const piece = makePieceDir();
+      const deck = validDeck();
+      // A skill grava caminho absoluto; o working copy tem que virar slug.
+      deck.brand_pack_ref = path.join(brandDir, 'brand.json');
+      await writeFile(path.join(piece, 'slides.json'), JSON.stringify(deck), 'utf8');
+
+      const resp = await importCarousel({ baseDir: piece });
+      expect(resp.status).toBe(200);
+      const body = (await resp.json()) as { project: { id: string } };
+      const dir = materializedDir(body.project.id);
+      const stored = JSON.parse(await readFile(path.join(dir, 'slides.json'), 'utf8'));
+      expect(stored.brand_pack_ref).toBe('acme');
+      const html = await readFile(path.join(dir, 'deck.html'), 'utf8');
+      expect(html).toContain('--P:#0057ff');
+      expect(html).toContain('/* acme skin */');
+    } finally {
+      delete process.env.MAQUINA_CARROSSEL_HOME;
+    }
+  });
+
+  it('drops a hostile brand ref and renders with the Root skin', async () => {
+    // Home isolado e vazio: sem marca ativa, o ref hostil não pode deixar
+    // rastro nem resolver — só resta o fallback Root empacotado.
+    process.env.MAQUINA_CARROSSEL_HOME = makePieceDir();
+    try {
+      const piece = makePieceDir();
+      const deck = validDeck();
+      deck.brand_pack_ref = '/etc/passwd';
+      await writeFile(path.join(piece, 'slides.json'), JSON.stringify(deck), 'utf8');
+
+      const resp = await importCarousel({ baseDir: piece });
+      expect(resp.status).toBe(200);
+      const body = (await resp.json()) as { project: { id: string } };
+      const dir = materializedDir(body.project.id);
+      const stored = JSON.parse(await readFile(path.join(dir, 'slides.json'), 'utf8'));
+      expect(stored.brand_pack_ref).toBeUndefined();
+      const html = await readFile(path.join(dir, 'deck.html'), 'utf8');
+      expect(html).toContain('--P:#9bdb1f');
+    } finally {
+      delete process.env.MAQUINA_CARROSSEL_HOME;
+    }
   });
 
   it('rejects a piece that breaks the contract, listing every problem', async () => {

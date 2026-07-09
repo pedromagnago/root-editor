@@ -381,6 +381,41 @@ export async function putCarouselDocument(
   return (await resp.json()) as { ok: boolean; slides: number };
 }
 
+// Brand packs do carrossel (~/.maquina-carrossel/marcas + o pack Root
+// empacotado). A "ativa" é a que a skill carrossel-root usa no próximo
+// "Novo carrossel" e o fallback de render dos decks sem brand_pack_ref.
+export interface CarouselBrandSummary {
+  slug: string;
+  nome: string;
+  handle: string;
+  pronta: boolean;
+  ativa: boolean;
+  bundled: boolean;
+}
+
+export async function listCarouselBrands(): Promise<CarouselBrandSummary[]> {
+  const resp = await fetch('/api/carousel/brands');
+  if (!resp.ok) throw new Error('Failed to list carousel brands');
+  const body = (await resp.json()) as { brands: CarouselBrandSummary[] };
+  return Array.isArray(body.brands) ? body.brands : [];
+}
+
+export async function setActiveCarouselBrand(slug: string): Promise<void> {
+  const resp = await fetch('/api/carousel/brands/active', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slug }),
+  });
+  if (!resp.ok) {
+    let message = 'Failed to switch the active brand';
+    try {
+      const body = await resp.json();
+      if (body?.error?.message) message = body.error.message;
+    } catch { /* use default message */ }
+    throw new Error(message);
+  }
+}
+
 export interface CreateCarouselResponse {
   project: Project;
   conversationId: string;

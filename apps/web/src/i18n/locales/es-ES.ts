@@ -1409,6 +1409,8 @@ export const esES: Dict = {
   'newproj.importingClaudeZip': 'Importando…',
   'newproj.importCarousel': "Import carousel (slides.json)",
   'newproj.createCarousel': "New carousel",
+  'newproj.carouselBrandLabel': "Brand",
+  'newproj.carouselBrandSwitchError': "Failed to switch the active brand",
   'newproj.creatingCarousel': "Creating…",
   'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': 'Por defecto, solo tú puedes ver tu proyecto.',

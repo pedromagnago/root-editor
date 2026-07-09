@@ -1409,6 +1409,8 @@ export const ptBR: Dict = {
   'newproj.importingClaudeZip': 'Importando…',
   'newproj.importCarousel': "Importar carrossel (slides.json)",
   'newproj.createCarousel': "Novo carrossel",
+  'newproj.carouselBrandLabel': "Marca",
+  'newproj.carouselBrandSwitchError': "Não deu para trocar a marca ativa",
   'newproj.creatingCarousel': "Criando…",
   'newproj.importingCarousel': "Importando…",
   'newproj.privacyFooter': 'Por padrão, só você pode ver seu projeto.',

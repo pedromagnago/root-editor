@@ -23,14 +23,18 @@ import { sandboxImportedProjectRootUnavailableReason } from './sandbox-mode.js';
 import { parseOrchestratorWorkspace } from './workspace-contract.js';
 import {
   CarouselContractError,
-  buildCarouselDeckHtml,
   carouselArtifactJson,
   imageDataUri,
-  loadCarouselImages,
   parseCarouselSlides,
   resolveInside,
   writeCarouselDeck,
 } from './carousel-import.js';
+import {
+  activeCarouselBrandSlug,
+  listCarouselBrands,
+  normalizeBrandRef,
+  setActiveCarouselBrand,
+} from './carousel-brand.js';
 import { logCarousel } from './logging/carousel.js';
 import { CARROSSEL_SKILL_ID, isCarouselProject, type CarouselAutoRender } from './carousel-autorender.js';
 
@@ -146,9 +150,50 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
   // carrossel-root skill is staged into the cwd on the first agent run, the
   // theme becomes the first message, and when the agent writes slides.json
   // the auto-render service materializes the deck. No import, no source folder.
+  // Brand packs do carrossel (V02 brandpack/v1, ~/.maquina-carrossel/marcas):
+  // a lista alimenta o seletor da UI; trocar a ativa é o que a skill
+  // carrossel-root lê no próximo "Novo carrossel" (mesma semântica do
+  // comando /marca da V02).
+  app.get('/api/carousel/brands', async (_req, res) => {
+    try {
+      res.json({ brands: await listCarouselBrands() });
+    } catch (err: any) {
+      sendApiError(res, 500, 'INTERNAL', String(err?.message || err));
+    }
+  });
+
+  app.put('/api/carousel/brands/active', async (req, res) => {
+    try {
+      const { slug } = req.body || {};
+      if (typeof slug !== 'string' || !slug.trim()) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'slug required');
+      }
+      const brands = await listCarouselBrands();
+      if (!brands.some((b) => b.slug === slug)) {
+        return sendApiError(res, 404, 'NOT_FOUND', `unknown brand: ${slug}`);
+      }
+      await setActiveCarouselBrand(slug);
+      res.json({ ok: true, ativa: slug });
+    } catch (err: any) {
+      sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+    }
+  });
+
   app.post('/api/projects/carousel', async (req, res) => {
     try {
-      const { theme, name } = req.body || {};
+      const { theme, name, marca } = req.body || {};
+      if (marca != null) {
+        if (typeof marca !== 'string' || !marca.trim()) {
+          return sendApiError(res, 400, 'BAD_REQUEST', 'marca must be a non-empty string');
+        }
+        const brands = await listCarouselBrands();
+        if (!brands.some((b) => b.slug === marca)) {
+          return sendApiError(res, 404, 'NOT_FOUND', `unknown brand: ${marca}`);
+        }
+        // A skill lê a marca ativa do config.json — escolher a marca no
+        // fluxo de criação É trocar a ativa (mesma semântica da V02).
+        await setActiveCarouselBrand(marca);
+      }
       const id = randomId();
       const now = Date.now();
       const trimmedTheme = typeof theme === 'string' ? theme.trim() : '';
@@ -168,7 +213,7 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         // (prototype -> example-web-prototype, deck -> example-simple-deck, …)
         // whose onboarding flow would run INSTEAD of the carrossel-root skill.
         // Omitting kind resolves to no scenario plugin, so only the skill runs.
-        metadata: { carousel: true },
+        metadata: marca ? { carousel: true, marca } : { carousel: true },
         createdAt: now,
         updatedAt: now,
       });
@@ -191,9 +236,12 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
     const traceId = randomId();
     const importStartedAt = Date.now();
     try {
-      const { baseDir, name } = req.body || {};
+      const { baseDir, name, marca } = req.body || {};
       if (typeof baseDir !== 'string' || !baseDir.trim()) {
         return sendApiError(res, 400, 'BAD_REQUEST', 'baseDir required');
+      }
+      if (marca != null && typeof marca !== 'string') {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'marca must be a string');
       }
       if (isDesktopAuthGateActive()) {
         const secret = desktopAuthSecret();
@@ -343,15 +391,23 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         slide.imagem = { ...slide.imagem, ref: rel };
       }
 
-      const html = await buildCarouselDeckHtml(deck, {
-        resolveImage: (ref) => imageUris.get(ref) ?? null,
-      });
+      // A marca do working copy é sempre um SLUG normalizado (portável entre
+      // máquinas): `marca` explícita do request > brand_pack_ref da peça
+      // (a skill grava caminho absoluto) > marca ativa. Ref que não resolve
+      // para dentro da raiz de marcas é descartada — o render degrada para
+      // a skin Root, nunca lê caminho arbitrário.
+      const stampedBrand =
+        normalizeBrandRef(marca) ??
+        normalizeBrandRef(deck.brand_pack_ref) ??
+        (await activeCarouselBrandSlug());
+      if (stampedBrand) deck.brand_pack_ref = stampedBrand;
+      else delete deck.brand_pack_ref;
 
       const projectName =
         typeof name === 'string' && name.trim()
           ? name.trim()
           : deck.meta.tema?.trim() || path.basename(normalizedPath);
-      await fs.promises.writeFile(path.join(dir, entryFile), html, 'utf8');
+      await writeCarouselDeck(dir, entryFile, deck, imageUris);
       await fs.promises.writeFile(
         path.join(dir, `${entryFile}.artifact.json`),
         JSON.stringify(carouselArtifactJson(projectName, entryFile, new Date(now).toISOString()), null, 2),

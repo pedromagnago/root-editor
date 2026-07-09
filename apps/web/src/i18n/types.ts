@@ -1952,6 +1952,8 @@ export interface Dict {
   'newproj.importingClaudeZip': string;
   'newproj.importCarousel': string;
   'newproj.createCarousel': string;
+  'newproj.carouselBrandLabel': string;
+  'newproj.carouselBrandSwitchError': string;
   'newproj.creatingCarousel': string;
   'newproj.importingCarousel': string;
   'newproj.privacyFooter': string;

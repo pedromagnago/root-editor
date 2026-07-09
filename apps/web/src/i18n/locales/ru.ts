@@ -1409,6 +1409,8 @@ export const ru: Dict = {
   'newproj.importingClaudeZip': 'Импорт…',
   'newproj.importCarousel': "Import carousel (slides.json)",
   'newproj.createCarousel': "New carousel",
+  'newproj.carouselBrandLabel': "Brand",
+  'newproj.carouselBrandSwitchError': "Failed to switch the active brand",
   'newproj.creatingCarousel': "Creating…",
   'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': 'По умолчанию только вы можете видеть свой проект.',

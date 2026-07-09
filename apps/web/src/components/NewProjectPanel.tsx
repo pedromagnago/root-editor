@@ -19,7 +19,12 @@ import type {
 
 import { useT } from '../i18n';
 import type { Dict } from '../i18n/types';
-import { pickLocalFolderPath } from '../state/projects';
+import {
+  listCarouselBrands,
+  pickLocalFolderPath,
+  setActiveCarouselBrand,
+  type CarouselBrandSummary,
+} from '../state/projects';
 import { fetchPromptTemplate, openFolderDialog } from '../providers/registry';
 import { isStoredMediaProviderEntryPresent } from '../state/config';
 import { isMediaProviderPickerReady } from '../media/provider-readiness';
@@ -296,6 +301,41 @@ export function NewProjectPanel({
     { message: string } | null
   >(null);
   const [carouselCreating, setCarouselCreating] = useState(false);
+  // Marcas do carrossel (brand packs). Trocar a seleção troca a marca ATIVA
+  // no daemon (~/.maquina-carrossel/config.json) — é ela que a skill
+  // carrossel-root lê ao criar o deck, mesma semântica do /marca da V02.
+  const [carouselBrands, setCarouselBrands] = useState<CarouselBrandSummary[]>([]);
+  const [carouselBrandError, setCarouselBrandError] = useState<
+    { message: string } | null
+  >(null);
+  useEffect(() => {
+    if (!onCreateCarousel) return;
+    let cancelled = false;
+    listCarouselBrands()
+      .then((brands) => {
+        if (!cancelled) setCarouselBrands(brands);
+      })
+      .catch(() => {
+        // Sem lista, sem seletor — criar segue funcionando com a marca ativa.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [onCreateCarousel]);
+  const activeCarouselBrand =
+    carouselBrands.find((b) => b.ativa)?.slug ?? carouselBrands[0]?.slug ?? '';
+  async function handleSelectCarouselBrand(slug: string) {
+    const previous = carouselBrands;
+    setCarouselBrandError(null);
+    // Otimista: o select reflete a escolha na hora; erro reverte e avisa.
+    setCarouselBrands((curr) => curr.map((b) => ({ ...b, ativa: b.slug === slug })));
+    try {
+      await setActiveCarouselBrand(slug);
+    } catch {
+      setCarouselBrands(previous);
+      setCarouselBrandError({ message: t('newproj.carouselBrandSwitchError') });
+    }
+  }
   const [workingDir, setWorkingDir] = useState<string | null>(null);
   const [workingDirToken, setWorkingDirToken] = useState<string | null>(null);
   const [workingDirPicking, setWorkingDirPicking] = useState(false);
@@ -1148,6 +1188,23 @@ export function NewProjectPanel({
                   : t('newproj.createCarousel')}
               </span>
             </button>
+            {carouselBrands.length > 0 ? (
+              <label className="newproj-carousel-brand">
+                <span>{t('newproj.carouselBrandLabel')}</span>
+                <select
+                  value={activeCarouselBrand}
+                  disabled={carouselCreating}
+                  onChange={(e) => void handleSelectCarouselBrand(e.target.value)}
+                  aria-label={t('newproj.carouselBrandLabel')}
+                >
+                  {carouselBrands.map((b) => (
+                    <option key={b.slug} value={b.slug}>
+                      {b.handle && b.handle !== `@${b.slug}` ? `${b.nome} (${b.handle})` : b.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
           </div>
         ) : null}
         {onImportCarousel ? (
@@ -1190,6 +1247,13 @@ export function NewProjectPanel({
           message={carouselImportError.message}
           ttlMs={6000}
           onDismiss={() => setCarouselImportError(null)}
+        />
+      ) : null}
+      {carouselBrandError ? (
+        <Toast
+          message={carouselBrandError.message}
+          ttlMs={6000}
+          onDismiss={() => setCarouselBrandError(null)}
         />
       ) : null}
       {workingDirError ? (

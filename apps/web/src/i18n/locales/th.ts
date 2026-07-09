@@ -1409,6 +1409,8 @@ export const th: Dict = {
   'newproj.importingClaudeZip': 'กำลังนำเข้า…',
   'newproj.importCarousel': "Import carousel (slides.json)",
   'newproj.createCarousel': "New carousel",
+  'newproj.carouselBrandLabel': "Brand",
+  'newproj.carouselBrandSwitchError': "Failed to switch the active brand",
   'newproj.creatingCarousel': "Creating…",
   'newproj.importingCarousel': "Importing…",
   'newproj.privacyFooter': 'โดยค่าเริ่มต้น คุณเท่านั้นที่สามารถดูโปรเจกต์ของคุณได้',

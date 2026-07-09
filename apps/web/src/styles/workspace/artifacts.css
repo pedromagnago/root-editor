@@ -2965,6 +2965,26 @@
   gap: 6px;
   margin-top: 2px;
 }
+/* Seletor de marca do carrossel (brand pack ativo da máquina) */
+.newproj-carousel-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.newproj-carousel-brand select {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 4px 8px;
+  font: inherit;
+  color: var(--text);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.newproj-carousel-brand select:hover { border-color: var(--border-strong); }
+.newproj-carousel-brand select:disabled { opacity: 0.6; }
 .newproj-footer {
   padding: 6px 24px 16px;
   font-size: 11px;
