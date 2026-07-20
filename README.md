@@ -47,6 +47,7 @@ O pack da Root vem embutido como default de fábrica.
 - `apps/web` — Next.js/React: o editor.
 - `apps/desktop` — Electron: captura/export e app empacotado.
 - `skills/carrossel-root/` — a metodologia editorial (skill de Claude Code encenada no projeto).
+- Metodologia, PRD, arquitetura e decisões da Root: [`docs-root/`](docs-root/) (o `docs/` é do Open Design).
 - Referência avançada do fork (dev, Docker, troubleshooting): [`QUICKSTART.md`](QUICKSTART.md) e [`docs/UPSTREAM-README.md`](docs/UPSTREAM-README.md).
 
 ## Créditos e licença
