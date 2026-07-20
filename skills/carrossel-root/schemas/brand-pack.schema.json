@@ -4,41 +4,90 @@
   "title": "Brand Pack — identidade da marca (local, multi-marca)",
   "description": "Produzido pelo onboarding (/marca) e salvo em ~/.maquina-carrossel/marcas/<slug>/brand.json. Superset do Brand Core v01 (compatível com brand_get) + extensões para a 5.5 e o render. É a ÚNICA fonte de verdade da marca.",
   "type": "object",
-  "required": ["slug", "nome", "handle", "visual_tokens"],
+  "required": [
+    "slug",
+    "nome",
+    "handle",
+    "visual_tokens"
+  ],
   "additionalProperties": true,
   "properties": {
-    "$schema": { "type": "string", "const": "brandpack/v1" },
-    "slug": { "type": "string", "pattern": "^[a-z0-9-]+$" },
-    "nome": { "type": "string" },
-    "handle": { "type": "string", "description": "@handle do Instagram" },
-    "nicho": { "type": "string" },
-    "criado_em": { "type": "string" },
-    "atualizado_em": { "type": "string" },
-    "fonte_canonica": { "type": "string", "description": "de onde vieram os tokens (ex.: onboarding, site, brand book)" },
-
+    "$schema": {
+      "type": "string",
+      "const": "brandpack/v1"
+    },
+    "slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "nome": {
+      "type": "string"
+    },
+    "handle": {
+      "type": "string",
+      "description": "@handle do Instagram"
+    },
+    "nicho": {
+      "type": "string"
+    },
+    "criado_em": {
+      "type": "string"
+    },
+    "atualizado_em": {
+      "type": "string"
+    },
+    "fonte_canonica": {
+      "type": "string",
+      "description": "de onde vieram os tokens (ex.: onboarding, site, brand book)"
+    },
     "voice_tone": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "descricao": { "type": "string" },
+        "descricao": {
+          "type": "string"
+        },
         "eixos": {
           "type": "object",
           "description": "0..1 em cada eixo",
           "properties": {
-            "formal_informal": { "type": "number" },
-            "tecnico_acessivel": { "type": "number" },
-            "serio_divertido": { "type": "number" },
-            "proximo_distante": { "type": "number" }
+            "formal_informal": {
+              "type": "number"
+            },
+            "tecnico_acessivel": {
+              "type": "number"
+            },
+            "serio_divertido": {
+              "type": "number"
+            },
+            "proximo_distante": {
+              "type": "number"
+            }
           }
         },
-        "exemplos_de_frase": { "type": "array", "items": { "type": "string" } }
+        "exemplos_de_frase": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "rules": {
       "type": "object",
       "properties": {
-        "aprovados": { "type": "array", "items": { "type": "string" } },
-        "proibidos": { "type": "array", "items": { "type": "string" } }
+        "aprovados": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "proibidos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "personas": {
@@ -46,11 +95,27 @@
       "items": {
         "type": "object",
         "properties": {
-          "id": { "type": "string" },
-          "nome": { "type": "string" },
-          "perfil": { "type": "string" },
-          "dores": { "type": "array", "items": { "type": "string" } },
-          "desejos": { "type": "array", "items": { "type": "string" } }
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "perfil": {
+            "type": "string"
+          },
+          "dores": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "desejos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -60,44 +125,97 @@
       "items": {
         "type": "object",
         "properties": {
-          "claim": { "type": "string" },
-          "fonte": { "type": "string" },
-          "ano": { "type": ["integer", "string"] },
-          "verificado": { "type": "boolean" }
+          "claim": {
+            "type": "string"
+          },
+          "fonte": {
+            "type": "string"
+          },
+          "ano": {
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "verificado": {
+            "type": "boolean"
+          }
         }
       }
     },
     "copy_frameworks": {
       "type": "array",
-      "items": { "type": "string", "enum": ["armadilha", "raio-x", "dados-decidem", "caso-pratica", "nicho-attack"] }
+      "items": {
+        "type": "string",
+        "enum": [
+          "armadilha",
+          "raio-x",
+          "dados-decidem",
+          "caso-pratica",
+          "nicho-attack",
+          "thread"
+        ]
+      }
     },
-
     "visual_tokens": {
       "type": "object",
-      "required": ["cores"],
+      "required": [
+        "cores"
+      ],
       "properties": {
         "cores": {
           "type": "object",
-          "required": ["primaria"],
+          "required": [
+            "primaria"
+          ],
           "properties": {
-            "primaria": { "type": "string", "description": "#hex" },
-            "acento": { "type": "string" },
-            "sucesso": { "type": "string" },
-            "texto": { "type": "string" },
-            "bg": { "type": "string" }
+            "primaria": {
+              "type": "string",
+              "description": "#hex"
+            },
+            "acento": {
+              "type": "string"
+            },
+            "sucesso": {
+              "type": "string"
+            },
+            "texto": {
+              "type": "string"
+            },
+            "bg": {
+              "type": "string"
+            }
           }
         },
         "fontes": {
           "type": "object",
           "properties": {
-            "headline": { "type": "string" },
-            "body": { "type": "string" }
+            "headline": {
+              "type": "string"
+            },
+            "body": {
+              "type": "string"
+            }
           }
         },
-        "logo_url": { "type": ["string", "null"] }
+        "logo_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "estilo": {
+          "type": "string",
+          "enum": [
+            "classico",
+            "moderno",
+            "minimalista",
+            "bold"
+          ],
+          "description": "Estilo visual declarado no intake. Dirige a geracao do skin.css (textura, raio, peso, densidade) e a direcao de arte das imagens sugeridas. Sem isto a marca herda a assinatura de quem gerou o pack."
+        }
       }
     },
-
     "skin": {
       "type": "string",
       "description": "ref do CSS de assinatura visual da marca (default: skin.css na pasta da marca). Camada híbrida injetada após o design-system base: texturas, gradientes, acentos, tratamentos de capa. Pode usar as CSS vars (--P, --ALERT, --OK, --LB, --DB) e o hook .skin-layer."
@@ -106,24 +224,78 @@
       "type": "object",
       "description": "derivados explícitos (opcional). Se ausentes, lib/tokens.mjs deriva de visual_tokens.cores.primaria.",
       "properties": {
-        "P": { "type": "string" }, "PL": { "type": "string" }, "PD": { "type": "string" },
-        "LB": { "type": "string" }, "LR": { "type": "string" }, "DB": { "type": "string" },
-        "ALERT": { "type": "string" }, "OK": { "type": "string" },
-        "F_HEAD": { "type": "string" }, "F_BODY": { "type": "string" }
+        "P": {
+          "type": "string"
+        },
+        "PL": {
+          "type": "string"
+        },
+        "PD": {
+          "type": "string"
+        },
+        "LB": {
+          "type": "string"
+        },
+        "LR": {
+          "type": "string"
+        },
+        "DB": {
+          "type": "string"
+        },
+        "ALERT": {
+          "type": "string"
+        },
+        "OK": {
+          "type": "string"
+        },
+        "F_HEAD": {
+          "type": "string"
+        },
+        "F_BODY": {
+          "type": "string"
+        }
       }
     },
-
     "icp_ddd": {
       "type": "object",
       "description": "Guia de Bolso do Método DDD (condensado). fala_assim/evita alimentam rules.",
       "properties": {
-        "arquetipo": { "type": "string" },
-        "dores_top": { "type": "array", "items": { "type": "object" } },
-        "desejos_top": { "type": "array", "items": { "type": "object" } },
-        "diferenciais": { "type": "array", "items": { "type": "object" } },
-        "promessa_central": { "type": "string" },
-        "fala_assim": { "type": "array", "items": { "type": "string" } },
-        "evita": { "type": "array", "items": { "type": "string" } }
+        "arquetipo": {
+          "type": "string"
+        },
+        "dores_top": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "desejos_top": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "diferenciais": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "promessa_central": {
+          "type": "string"
+        },
+        "fala_assim": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "evita": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     },
     "temas_editoriais": {
@@ -131,31 +303,74 @@
       "items": {
         "type": "object",
         "properties": {
-          "tema": { "type": "string" },
-          "angulos": { "type": "array", "items": { "type": "string" } }
+          "tema": {
+            "type": "string"
+          },
+          "angulos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
         }
       }
     },
     "exemplos_ancora": {
       "type": "array",
       "description": "copy aprovada de referência (calibra voz, foge de AI-slop)",
-      "items": { "type": "object", "properties": { "ref": { "type": "string" }, "nota": { "type": "string" } } }
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string"
+          },
+          "nota": {
+            "type": "string"
+          }
+        }
+      }
     },
     "qa_overrides": {
       "type": "object",
       "properties": {
-        "permite_segunda_pessoa": { "type": "boolean" },
-        "anglicismos_ok": { "type": "array", "items": { "type": "string" } },
-        "proibir_acusacao": { "type": "boolean" }
+        "permite_segunda_pessoa": {
+          "type": "boolean"
+        },
+        "anglicismos_ok": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "proibir_acusacao": {
+          "type": "boolean"
+        }
       }
     },
     "quality": {
       "type": "object",
       "properties": {
-        "prontidao": { "type": "number", "description": "0–100" },
-        "fundamentais_ok": { "type": "boolean" },
-        "status": { "type": "string", "enum": ["pronto", "quase_la", "incompleto"] },
-        "warnings": { "type": "array", "items": { "type": "string" } }
+        "prontidao": {
+          "type": "number",
+          "description": "0–100"
+        },
+        "fundamentais_ok": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pronto",
+            "quase_la",
+            "incompleto"
+          ]
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       }
     }
   }

@@ -16,6 +16,16 @@ Dois usos: o `revisor-qa` aplica o **bloco A (copy)**; o `validador-visual` apli
 - [ ] CTA único, coerente com a oferta da marca, diretivo (não cordial).
 - [ ] 7 parâmetros de QA ≥ 8/10 cada (`manual-qualidade.md`).
 
+## Bloco A2 — Voz da marca (o que separa a peça do cliente da peça genérica)
+Sem este bloco, a peça sai na voz desta skill — que é a voz da Root — em vez da voz de quem contratou.
+- [ ] O texto passaria pelo teste do disfarce: **trocando o logo, um leitor da marca reconheceria que é dela?** Se serviria para qualquer concorrente, a voz não foi aplicada.
+- [ ] Ritmo e vocabulário coerentes com `voice_tone.exemplos_de_frase` e `icp_ddd.fala_assim` — sem copiar frase literal.
+- [ ] Os quatro eixos de `voice_tone.eixos` respeitados (ex.: `tecnico_acessivel` alto = termo técnico traduzido, não evitado).
+- [ ] Nada da lista `icp_ddd.evita`. Nada de `rules.proibidos`.
+- [ ] `icp_ddd.promessa_central` implícita na peça, sem virar propaganda.
+- [ ] Exemplos e dores falam com `personas[]` da marca, não com um público genérico.
+- [ ] Se havia `facts` aplicável à espinha, foi usado em vez de dado novo sem procedência.
+
 ## Bloco B — Visual (validador-visual, olhando o preview)
 - [ ] Alternância de fundos clara; **nunca 3 slides iguais** consecutivos.
 - [ ] Progress bar avança corretamente; **último slide em 100% e SEM seta** de swipe.

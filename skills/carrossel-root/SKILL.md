@@ -58,6 +58,17 @@ Com o slug em mãos, carregue `~/.maquina-carrossel/marcas/<slug>/brand.json`.
   > 1) Marca + @ do Instagram  2) Nicho  3) Cor principal (hex ou "não sei")  4) Estilo visual (clássico / moderno / minimalista / bold)  5) CTA do último slide  6) Quantos slides (5/7/9)
   Com as respostas, **monte e salve** `~/.maquina-carrossel/marcas/<slug>/brand.json` (schema em `schemas/brand-pack.schema.json` desta skill), marque como ativa em `config.json` **e carimbe este projeto** gravando `./.marca.json` com `{"marca": "<slug>"}` — sem o carimbo, este deck volta a depender da config global, que muda quando o cliente criar o próximo carrossel. Nunca gere o deck com marca vazia.
 
+  **Grave a resposta 4 em `visual_tokens.estilo`** (`classico|moderno|minimalista|bold`) e **gere o `skin.css` da marca** ao lado do `brand.json`. Sem isso a marca fica sem assinatura visual e acaba herdando a de outra — foi assim que uma marca de BPO contábil ganhou a grade de terminal que é identidade da Root. O que o estilo decide:
+
+  | Estilo | Textura de fundo | `--R-CARD` | `--BAR-H` | Véu (`--SCRIM`) |
+  |---|---|---|---|---|
+  | `classico` | nenhuma | `4px` | `3px` | suave |
+  | `moderno` | gradiente sutil no acento | `12px` | `5px` | médio |
+  | `minimalista` | nenhuma | `2px` | `0` | `none` |
+  | `bold` | bloco de cor chapado | `0` | `8px` | forte |
+
+  Regras da skin gerada: **use as cores do `brand.json`, nunca as de outra marca**; textura só se o estilo pedir; e escreva `.slide.capa` **depois** de `.slide.dark`, senão a regra da capa perde na cascata (as duas classes convivem no mesmo elemento). Se a marca já tem `skin.css`, não sobrescreva sem perguntar.
+
 **Modo:** se o usuário pedir "auto" (ou `--auto`), avance os gates sozinho (escolha a headline de maior tensão e o template coerente, justifique cada um em 1 linha) e entregue com 1 confirmação. Sem isso = **guiado** (gates abaixo).
 
 ## 1. Fluxo editorial (você conduz, gates conversacionais)
@@ -91,7 +102,9 @@ Direção: <o próximo passo lógico — sem CTA comercial aqui>
 ```
 Feche com `Estrutura aprovada? (ok / ajustar)` e pare.
 
-**Etapa 4 — Template.** Só agora, com a espinha na mão, você tem o que precisa para escolher a estrutura — por isso este gate vem depois dela, não antes. **Recomende um** dos 6 de `frameworks-slide.md` e justifique em uma linha ligada à espinha real (não genérica). O usuário decide:
+**Etapa 4 — Template.** Só agora, com a espinha na mão, você tem o que precisa para escolher a estrutura — por isso este gate vem depois dela, não antes.
+
+**Ofereça só o que a marca aceita.** Se o brand pack traz `copy_frameworks`, ele é a lista permitida — a marca já decidiu quais estruturas combinam com ela, e oferecer as outras é ignorar essa decisão. Só quando o campo estiver ausente ou vazio ofereça os 6. **Recomende um** e justifique em uma linha ligada à espinha real (não genérica). O usuário decide:
 ```
 Template recomendado: <N) Nome (X slides)> — <por que ESTE, ligado à tese/prova desta peça>
 
@@ -106,7 +119,19 @@ Escolhe 1–6, ou "ok" para o recomendado.
 ```
 O template escolhido define a estrutura **e** o nº de slides. Se o intake da marca pediu outra contagem, o template manda na estrutura e você ajusta o miolo (repetir ou fundir slides de método/prova) — **nunca** mexa na capa nem no fechamento. Feche o gate e pare.
 
-**Etapa 5 — Texto final dos slides.** Siga a tabela do template escolhido na Etapa 4 (papel, `bg` e componentes por slide já vêm de lá — não reinvente a estrutura). Escreva o **texto de cada slide** seguindo a densidade do `manual-qualidade.md`: **no máximo 2 blocos por slide** (bloco 1 contextualiza, bloco 2 aprofunda/contradiz), específico, com dado+fonte+ano onde houver número, **sem 2ª pessoa**, capa com headline curta (6–8 palavras) e o destaque em `<em>`, último slide com CTA único e diretivo. Mostre o texto numerado por slide e feche com `Revisa. Quando estiver ok, digito o visual. (ok / ajustar slide N)`. Pare.
+**Etapa 5 — Texto final dos slides.** Siga a tabela do template escolhido na Etapa 4 (papel, `bg` e componentes por slide já vêm de lá — não reinvente a estrutura).
+
+**Antes de escrever a primeira frase, releia o brand pack.** Sem isto o texto sai na voz genérica desta skill — que é a voz da Root — e não na voz do cliente. Os campos abaixo existem no `brand.json` justamente para isso:
+
+- `voice_tone.eixos` — quatro números de 0 a 1 (`formal_informal`, `tecnico_acessivel`, `serio_divertido`, `proximo_distante`). Não são decoração: um `tecnico_acessivel: 0.7` significa traduzir o termo técnico, não evitá-lo.
+- `voice_tone.exemplos_de_frase` e `icp_ddd.fala_assim` — o jeito real de construir frase desta marca. **Use como molde de ritmo e vocabulário**, nunca copiando literalmente.
+- `icp_ddd.evita` e `rules.proibidos` — filtro duro. Uma frase que viola isto não vai para o slide, mesmo que esteja boa.
+- `icp_ddd.promessa_central` e `diferenciais` — o que a peça precisa deixar implícito sem nunca soar propaganda.
+- `personas[].dores` e `.desejos` — para quem se fala. Calibra exemplo, não muda a tese.
+- `facts` — claims já verificados da marca. Se um serve à espinha, prefira-o a buscar dado novo (ele já tem fonte e ano).
+- `temas_editoriais` e `exemplos_ancora` — território e referência de peça que deu certo.
+
+Escreva o **texto de cada slide** seguindo a densidade do `manual-qualidade.md`: **no máximo 2 blocos por slide** (bloco 1 contextualiza, bloco 2 aprofunda/contradiz), específico, com dado+fonte+ano onde houver número, **sem 2ª pessoa**, capa com headline curta (6–8 palavras) e o destaque em `<em>`, último slide com CTA único e diretivo. Mostre o texto numerado por slide e feche com `Revisa. Quando estiver ok, digito o visual. (ok / ajustar slide N)`. Pare.
 
 **Etapa 6 — Imagens (pergunte SEMPRE, é obrigatório).** Depois do texto aprovado, antes de gerar o deck, pergunte:
 ```
