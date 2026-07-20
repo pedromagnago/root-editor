@@ -35,7 +35,7 @@ body { background: #2a2a2a; font-family: var(--F-BODY); -webkit-font-smoothing: 
 .slide.light:not(.capa), .slide.dark:not(.capa) { justify-content: center; }
 
 /* zona de imagem: card no topo do conteúdo (slides internos com imagem) */
-.img-box { width: 100%; height: 188px; border-radius: 14px; overflow: hidden; position: relative; z-index: 2; }
+.img-box { width: 100%; height: 188px; border-radius: var(--R-CARD, 14px); overflow: hidden; position: relative; z-index: 2; }
 .img-box img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
 /* fundos */
@@ -46,10 +46,10 @@ body { background: #2a2a2a; font-family: var(--F-BODY); -webkit-font-smoothing: 
 
 /* faixa de acento no topo */
 .slide::before {
-  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px;
-  background: var(--P);
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: var(--BAR-H, 5px);
+  background: var(--BAR-BG, var(--P));
 }
-.slide.gradient::before, .slide.alert::before { background: rgba(255,255,255,.5); }
+.slide.gradient::before, .slide.alert::before { background: var(--BAR-BG, rgba(255,255,255,.5)); }
 
 /* scrim de contraste (div real, atrás do conteúdo): texto legível sobre gradiente/alert/imagem */
 .scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
@@ -103,7 +103,7 @@ body { background: #2a2a2a; font-family: var(--F-BODY); -webkit-font-smoothing: 
 .tag.niche { color: var(--ALERT); }
 
 .h1 {
-  font-family: var(--F-HEAD); font-weight: 700; font-size: 24px;
+  font-family: var(--F-HEAD); font-weight: var(--W-HEAD, 700); font-size: 24px;
   line-height: 1.12; letter-spacing: -0.4px;
 }
 .body { font-family: var(--F-BODY); font-size: 15px; font-weight: 400; line-height: 1.55; }
@@ -120,18 +120,18 @@ body { background: #2a2a2a; font-family: var(--F-BODY); -webkit-font-smoothing: 
 .capa .badge {
   display: inline-block; align-self: flex-start;
   font-family: var(--F-BODY); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
-  padding: 7px 12px; border-radius: 6px; margin-bottom: 16px;
+  padding: 7px 12px; border-radius: var(--R-CARD, 6px); margin-bottom: 16px;
   background: var(--P); color: #fff;
 }
 .slide.capa.alert .badge { background: var(--ALERT); }
 .capa-headline {
   position: relative; z-index: 2;
-  font-family: var(--F-HEAD); font-weight: 700; font-size: 38px;
+  font-family: var(--F-HEAD); font-weight: var(--W-HEAD, 700); font-size: 38px;
   line-height: 1.04; letter-spacing: -0.8px; text-transform: uppercase;
 }
 
 /* ---------- COMPONENTES ---------- */
-.data-pill { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: 12px; background: rgba(127,127,127,.10); }
+.data-pill { display: flex; flex-direction: column; gap: 2px; padding: 14px 16px; border-radius: var(--R-CARD, 12px); background: var(--SURFACE, rgba(127,127,127,.10)); }
 .data-pill .number { font-family: var(--F-HEAD); font-weight: 700; font-size: 50px; line-height: 1; }
 .data-pill .label { font-family: var(--F-BODY); font-size: 13px; opacity: .8; }
 .data-pill.danger .number { color: var(--ALERT); }
@@ -145,8 +145,8 @@ body { background: #2a2a2a; font-family: var(--F-BODY); -webkit-font-smoothing: 
 .strike-pill::after { content: ""; }
 
 .insight-box {
-  border-left: 4px solid var(--P); padding: 12px 16px; border-radius: 0 10px 10px 0;
-  background: rgba(127,127,127,.08);
+  border-left: 4px solid var(--P); padding: 12px 16px; border-radius: 0 var(--R-CARD, 10px) var(--R-CARD, 10px) 0;
+  background: var(--SURFACE, rgba(127,127,127,.08));
 }
 .insight-box .icon { font-size: 18px; }
 .insight-box p { font-family: var(--F-HEAD); font-weight: 600; font-size: 18px; line-height: 1.3; margin: 4px 0; }
@@ -158,8 +158,8 @@ body { background: #2a2a2a; font-family: var(--F-BODY); -webkit-font-smoothing: 
    Sem contagem de curtida/repost — número forjado num post que nunca existiu
    é prova social fabricada. */
 .x-post {
-  border: 1px solid rgba(127,127,127,.28); border-radius: 16px;
-  padding: 16px 18px; background: rgba(127,127,127,.06);
+  border: 1px solid var(--BORDER, rgba(127,127,127,.28)); border-radius: var(--R-CARD, 16px);
+  padding: 16px 18px; background: var(--SURFACE, rgba(127,127,127,.06));
   display: flex; flex-direction: column; gap: 10px;
 }
 .x-post .x-head { display: flex; align-items: center; gap: 10px; }
@@ -206,7 +206,7 @@ body { background: #2a2a2a; font-family: var(--F-BODY); -webkit-font-smoothing: 
 .cta-button {
   display: inline-block; align-self: flex-start;
   font-family: var(--F-HEAD); font-weight: 700; font-size: 15px; letter-spacing: .5px; text-transform: uppercase;
-  padding: 14px 20px; border-radius: 10px; background: var(--P); color: #fff;
+  padding: 14px 20px; border-radius: var(--R-CARD, 10px); background: var(--P); color: #fff;
 }
 .slide.alert .cta-button { background: var(--ALERT); }
 

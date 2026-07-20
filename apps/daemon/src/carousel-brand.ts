@@ -231,6 +231,14 @@ function readBrand(brand: CarouselBrandPack) {
     // o texto certo em cima dela não é necessariamente o mesmo do fundo escuro.
     FG_G: rt.FG_G,
     FG_ALERT: rt.FG_ALERT,
+    // Forma: sem default. `undefined` faz o token não ser emitido e o CSS cair
+    // no fallback de cada componente.
+    R_CARD: rt.R_CARD,
+    SURFACE: rt.SURFACE,
+    BORDER: rt.BORDER,
+    BAR_H: rt.BAR_H,
+    BAR_BG: rt.BAR_BG,
+    W_HEAD: rt.W_HEAD,
   };
 }
 
@@ -268,10 +276,35 @@ export function deriveCarouselTokens(brand: CarouselBrandPack = {}) {
     // mesmo LT de sempre — preserva o comportamento de todo pack existente.
     FG_G: b.FG_G || b.LT,
     FG_ALERT: b.FG_ALERT || b.LT,
+    R_CARD: b.R_CARD,
+    SURFACE: b.SURFACE,
+    BORDER: b.BORDER,
+    BAR_H: b.BAR_H,
+    BAR_BG: b.BAR_BG,
+    W_HEAD: b.W_HEAD,
     F_HEAD: b.F_HEAD,
     F_BODY: b.F_BODY,
     warm,
   };
+}
+
+// Tokens de FORMA. Emitidos só quando a marca declara — cada componente traz o
+// valor atual como fallback no próprio `var()`. Assim um pack que não declara
+// nada renderiza exatamente como antes (a âncora de paridade do Root depende
+// disso), e um pack que declara `R_CARD: 2px` deixa o deck inteiro reto de uma
+// vez, sem precisar conhecer os cinco raios distintos que existem hoje.
+function shapeVars(t: Record<string, unknown>): string {
+  const out: string[] = [];
+  const push = (name: string, value: unknown) => {
+    if (typeof value === 'string' && value.trim()) out.push(`--${name}:${value.trim()}`);
+  };
+  push('R-CARD', t.R_CARD);
+  push('SURFACE', t.SURFACE);
+  push('BORDER', t.BORDER);
+  push('BAR-H', t.BAR_H);
+  push('BAR-BG', t.BAR_BG);
+  push('W-HEAD', t.W_HEAD);
+  return out.length ? `\n  ${out.join('; ')};` : '';
 }
 
 // Bloco :root com as vars que o base.css consome — mesmo formato da V02
@@ -284,7 +317,7 @@ export function carouselRootCss(brand: CarouselBrandPack = {}): string {
   --DT:${t.DT}; --LT:${t.LT};
   --ALERT:${t.ALERT}; --ALERT-D:${t.ALERT_D}; --OK:${t.OK};
   --SCRIM:${t.SCRIM}; --SCRIM-IMG:${t.SCRIM_IMG};
-  --FG-G:${t.FG_G}; --FG-ALERT:${t.FG_ALERT};
+  --FG-G:${t.FG_G}; --FG-ALERT:${t.FG_ALERT};${shapeVars(t)}
   --G: linear-gradient(165deg, ${t.PD} 0%, ${t.P} 50%, ${t.PL} 100%);
   --G-ALERT: linear-gradient(165deg, ${t.ALERT_D} 0%, ${t.ALERT} 100%);
   --F-HEAD: '${t.F_HEAD}', 'Space Grotesk', system-ui, sans-serif;

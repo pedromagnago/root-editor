@@ -277,6 +277,30 @@
         "FG_ALERT": {
           "type": "string",
           "description": "Cor do texto no papel tensao (alert). Default: LT."
+        },
+        "R_CARD": {
+          "type": "string",
+          "description": "Raio dos cards. Um valor para o deck inteiro. Sem isto, cada componente usa o raio historico (6-16px). `0` deixa tudo reto."
+        },
+        "SURFACE": {
+          "type": "string",
+          "description": "Fundo das superficies internas (data-pill, insight-box, x-post). Default: cinza neutro."
+        },
+        "BORDER": {
+          "type": "string",
+          "description": "Cor das bordas de card. Default: cinza neutro."
+        },
+        "BAR_H": {
+          "type": "string",
+          "description": "Altura da faixa de acento no topo de todo slide. `0` remove."
+        },
+        "BAR_BG": {
+          "type": "string",
+          "description": "Cor da faixa do topo. Default: a primaria da marca."
+        },
+        "W_HEAD": {
+          "type": "string",
+          "description": "Peso da headline (h1 e capa). Default: 700."
         }
       }
     },
