@@ -3500,6 +3500,8 @@ export interface Dict {
   'carouselEditor.saving': string;
   'carouselEditor.saveFailed': string;
   'carouselEditor.problemsTitle': string;
+  'carouselEditor.brand': string;
+  'carouselEditor.brandInherit': string;
   'fileViewer.exportPptxRecommended': string;
   'fileViewer.exportingProgress': string;
   'fileViewer.exportSlideProgress': string;

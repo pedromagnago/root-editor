@@ -2736,6 +2736,8 @@ export const ko: Dict = {
   'carouselEditor.saving': "Saving…",
   'carouselEditor.saveFailed': "Could not save the carousel.",
   'carouselEditor.problemsTitle': "The contract rejected the document:",
+  'carouselEditor.brand': "Brand",
+  'carouselEditor.brandInherit': "Use the active brand",
   'fileViewer.exportPptxRecommended': "Recommended",
   'fileViewer.exportingProgress': '내보내는 중…',
   'fileViewer.exportSlideProgress': '슬라이드 {current}/{total} 내보내는 중…',

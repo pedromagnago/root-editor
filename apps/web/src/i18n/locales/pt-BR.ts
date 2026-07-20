@@ -2736,6 +2736,8 @@ export const ptBR: Dict = {
   'carouselEditor.saving': "Salvando…",
   'carouselEditor.saveFailed': "Não deu para salvar o carrossel.",
   'carouselEditor.problemsTitle': "O contrato recusou o documento:",
+  'carouselEditor.brand': "Marca",
+  'carouselEditor.brandInherit': "Usar a marca ativa",
   'fileViewer.exportPptxRecommended': "Recommended",
   'fileViewer.exportingProgress': 'Exportando…',
   'fileViewer.exportSlideProgress': 'Exportando slide {current}/{total}…',

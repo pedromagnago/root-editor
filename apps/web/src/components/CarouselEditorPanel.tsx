@@ -11,7 +11,9 @@ import { useI18n } from '../i18n';
 import {
   CarouselSaveError,
   getCarouselDocument,
+  listCarouselBrands,
   putCarouselDocument,
+  type CarouselBrandSummary,
   type CarouselDocument,
   type CarouselSlideDoc,
 } from '../state/projects';
@@ -99,6 +101,23 @@ export function CarouselEditorPanel({ projectId, filesRefreshKey = 0, onGoToSlid
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<{ message: string; problems: string[] } | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
+  // Marcas disponíveis para a troca explícita. Falha de rede degrada para
+  // "sem seletor" — o deck continua editável, só não dá para trocar a marca.
+  const [brands, setBrands] = useState<CarouselBrandSummary[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void listCarouselBrands()
+      .then((list) => {
+        if (!cancelled) setBrands(list);
+      })
+      .catch(() => {
+        if (!cancelled) setBrands([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Dirty semântico: compara o documento NORMALIZADO — digitar e apagar um
   // campo opcional volta a "sem mudanças" em vez de habilitar um save no-op.
@@ -310,8 +329,31 @@ export function CarouselEditorPanel({ projectId, filesRefreshKey = 0, onGoToSlid
       </div>
     );
   } else {
+    const deckBrand = doc.brand_pack_ref ?? '';
     body = (
       <>
+        {brands.length > 0 ? (
+          <div className="carousel-editor-fields carousel-editor-brand">
+            <label className="carousel-editor-field">
+              <span>{t('carouselEditor.brand')}</span>
+              <CustomSelect
+                value={deckBrand}
+                onChange={(slug) => {
+                  // Troca local do documento: entra no dirty-signature como
+                  // qualquer outro campo e é aplicada no Save, que re-renderiza
+                  // o deck. Nunca troca a marca ATIVA global — editar este deck
+                  // não pode mudar com o que os outros são renderizados.
+                  setDoc((curr) => (curr ? { ...curr, brand_pack_ref: slug } : curr));
+                }}
+                options={[
+                  { value: '', label: t('carouselEditor.brandInherit') },
+                  ...brands.map((b) => ({ value: b.slug, label: b.nome || b.slug })),
+                ]}
+                ariaLabel={t('carouselEditor.brand')}
+              />
+            </label>
+          </div>
+        ) : null}
         <div className="carousel-editor-body">
           <div className="carousel-editor-list" role="list" aria-label={t('carouselEditor.slides')}>
             {doc.slides.map((slide, index) => {

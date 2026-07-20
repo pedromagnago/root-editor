@@ -558,6 +558,12 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         }
         throw err;
       }
+      // Defesa em profundidade: o painel manda slug, mas um cliente qualquer
+      // pode mandar caminho. Normalizar aqui mantém o invariante de que o
+      // working copy nunca guarda caminho absoluto. Ref que não resolve é
+      // preservado (mesma escolha do autorender: é o working copy do usuário).
+      const editedBrand = normalizeBrandRef(deck.brand_pack_ref);
+      if (editedBrand) deck.brand_pack_ref = editedBrand;
       // Contract first, render second: if the deck write fails, slides.json
       // is still consistent and a retry re-renders from it.
       const storedSlides = JSON.stringify(deck, null, 2);

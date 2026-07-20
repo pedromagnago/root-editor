@@ -2962,6 +2962,8 @@ export const zhTW: Dict = {
   "carouselEditor.saving": "Saving…",
   "carouselEditor.saveFailed": "Could not save the carousel.",
   "carouselEditor.problemsTitle": "The contract rejected the document:",
+  "carouselEditor.brand": "Brand",
+  "carouselEditor.brandInherit": "Use the active brand",
   "fileViewer.exportPptxRecommended": "推薦",
   "fileViewer.exportingProgress": "正在匯出…",
   "fileViewer.exportSlideProgress": "正在匯出第 {current}/{total} 張…",

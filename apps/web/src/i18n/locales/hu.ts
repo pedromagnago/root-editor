@@ -2736,6 +2736,8 @@ export const hu: Dict = {
   'carouselEditor.saving': "Saving…",
   'carouselEditor.saveFailed': "Could not save the carousel.",
   'carouselEditor.problemsTitle': "The contract rejected the document:",
+  'carouselEditor.brand': "Brand",
+  'carouselEditor.brandInherit': "Use the active brand",
   'fileViewer.exportPptxRecommended': "Recommended",
   'fileViewer.exportingProgress': 'Exportálás…',
   'fileViewer.exportSlideProgress': '{current}/{total}. dia exportálása…',
