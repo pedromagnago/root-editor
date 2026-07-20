@@ -51,6 +51,18 @@ const DEFAULTS = {
   LT: '#F5F7FA',
   F_HEAD: 'Space Grotesk',
   F_BODY: 'DM Sans',
+  // Véu sobre os slides `gradient`/`alert`. Era `rgba(0,0,0,.88)` cravado no
+  // base.css e cobria 27 dos 39 slides dos templates — a causa real do "fundo
+  // preto" reclamado por marcas claras: a skin pintava o fundo com a cor da
+  // marca e este gradiente cobria com até 88% de preto. Nenhuma marca o
+  // sobrescrevia porque ninguém sabia que existia.
+  //
+  // O valor abaixo é o comportamento antigo, preservado byte a byte para a
+  // âncora de paridade do pack Root. Uma marca clara declara `none`.
+  SCRIM: 'linear-gradient(to top, rgba(0,0,0,.88) 0%, rgba(0,0,0,.68) 52%, rgba(0,0,0,.48) 100%)',
+  // Véu sobre FOTO. Continua existindo mesmo com SCRIM:none — texto sobre
+  // imagem precisa de contraste independentemente do estilo da marca.
+  SCRIM_IMG: 'linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,.15) 60%, transparent)',
 };
 
 interface Rgb {
@@ -157,6 +169,35 @@ export interface CarouselBrandPack {
   quality?: { status?: string };
 }
 
+// Luminância relativa aproximada (sRGB ponderado). Só precisa distinguir
+// "claro" de "escuro", não precisa da precisão de WCAG.
+// `parseHex` já devolve os canais normalizados em 0..1 — não dividir por 255.
+function isLightHex(hex: unknown): boolean | null {
+  const rgb = parseHex(hex);
+  if (!rgb) return null;
+  return 0.299 * rgb.r + 0.587 * rgb.g + 0.114 * rgb.b > 0.5;
+}
+
+// Encaixa o par texto/bg da marca no lado certo (claro ou escuro) do deck.
+// `render_tokens` explícito sempre vence — quem declarou DT/LT na mão sabe o
+// que quer.
+function brandTextPair(
+  bg: unknown,
+  texto: unknown,
+  rt: Record<string, unknown>,
+): { DT: string; LT: string } {
+  let DT = typeof rt.DT === 'string' ? rt.DT : '';
+  let LT = typeof rt.LT === 'string' ? rt.LT : '';
+  const bgIsLight = isLightHex(bg);
+  if (typeof texto === 'string' && bgIsLight !== null) {
+    // Marca clara: o texto dela é o texto do slide claro. Marca escura: o
+    // texto dela é o do slide escuro.
+    if (bgIsLight) DT ||= texto;
+    else LT ||= texto;
+  }
+  return { DT: DT || DEFAULTS.DT, LT: LT || DEFAULTS.LT };
+}
+
 function readBrand(brand: CarouselBrandPack) {
   const rt = brand?.render_tokens || {};
   const vt = brand?.visual_tokens || {};
@@ -173,6 +214,23 @@ function readBrand(brand: CarouselBrandPack) {
     LB: rt.LB,
     DB: rt.DB,
     LR: rt.LR,
+    // `cores.texto` e `cores.bg` existiam no schema e nunca eram lidos.
+    //
+    // Cuidado semântico: o par texto/bg da marca NÃO mapeia direto para DT/LT.
+    // `--DT` é o texto do slide CLARO e `--LT` o do slide ESCURO, enquanto o
+    // par da marca descreve o tema dela. A Root declara texto #DFFFE8 sobre bg
+    // #070A08 (marca escura); mapear esse texto para DT pintaria texto verde
+    // claro sobre fundo claro — ilegível. A FullBPO declara #111111 sobre
+    // #ffffff (marca clara), onde o mapeamento direto é o certo.
+    // Por isso a luminância do bg declarado decide de que lado o par entra.
+    ...brandTextPair(cores.bg, cores.texto, rt),
+    SCRIM: rt.SCRIM || DEFAULTS.SCRIM,
+    SCRIM_IMG: rt.SCRIM_IMG || DEFAULTS.SCRIM_IMG,
+    // Texto sobre os papéis `gradient`/`alert`. Existe separado de LT porque o
+    // fundo desses papéis pode ser cor sólida da marca (ex.: azul #434cff), e
+    // o texto certo em cima dela não é necessariamente o mesmo do fundo escuro.
+    FG_G: rt.FG_G,
+    FG_ALERT: rt.FG_ALERT,
   };
 }
 
@@ -202,8 +260,14 @@ export function deriveCarouselTokens(brand: CarouselBrandPack = {}) {
     ALERT,
     ALERT_D,
     OK,
-    DT: DEFAULTS.DT,
-    LT: DEFAULTS.LT,
+    DT: b.DT,
+    LT: b.LT,
+    SCRIM: b.SCRIM,
+    SCRIM_IMG: b.SCRIM_IMG,
+    // Sem declaração explícita, o texto dos papéis destaque/tensão segue o
+    // mesmo LT de sempre — preserva o comportamento de todo pack existente.
+    FG_G: b.FG_G || b.LT,
+    FG_ALERT: b.FG_ALERT || b.LT,
     F_HEAD: b.F_HEAD,
     F_BODY: b.F_BODY,
     warm,
@@ -219,6 +283,8 @@ export function carouselRootCss(brand: CarouselBrandPack = {}): string {
   --LB:${t.LB}; --LR:${t.LR}; --DB:${t.DB};
   --DT:${t.DT}; --LT:${t.LT};
   --ALERT:${t.ALERT}; --ALERT-D:${t.ALERT_D}; --OK:${t.OK};
+  --SCRIM:${t.SCRIM}; --SCRIM-IMG:${t.SCRIM_IMG};
+  --FG-G:${t.FG_G}; --FG-ALERT:${t.FG_ALERT};
   --G: linear-gradient(165deg, ${t.PD} 0%, ${t.P} 50%, ${t.PL} 100%);
   --G-ALERT: linear-gradient(165deg, ${t.ALERT_D} 0%, ${t.ALERT} 100%);
   --F-HEAD: '${t.F_HEAD}', 'Space Grotesk', system-ui, sans-serif;

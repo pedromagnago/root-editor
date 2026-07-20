@@ -253,6 +253,30 @@
         },
         "F_BODY": {
           "type": "string"
+        },
+        "DT": {
+          "type": "string",
+          "description": "Texto sobre slide CLARO. Sem isto, derivado de visual_tokens.cores.texto quando o bg da marca e claro."
+        },
+        "LT": {
+          "type": "string",
+          "description": "Texto sobre slide ESCURO. Sem isto, derivado de visual_tokens.cores.texto quando o bg da marca e escuro."
+        },
+        "SCRIM": {
+          "type": "string",
+          "description": "Veu sobre os slides destaque/tensao. `none` remove — e o que uma marca clara quer. Default: gradiente preto ate 88%."
+        },
+        "SCRIM_IMG": {
+          "type": "string",
+          "description": "Veu sobre foto. Independe do SCRIM: texto sobre imagem precisa de contraste em qualquer estilo."
+        },
+        "FG_G": {
+          "type": "string",
+          "description": "Cor do texto no papel destaque (gradient). Default: LT."
+        },
+        "FG_ALERT": {
+          "type": "string",
+          "description": "Cor do texto no papel tensao (alert). Default: LT."
         }
       }
     },

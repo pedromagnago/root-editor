@@ -41,8 +41,8 @@ body { background: #2a2a2a; font-family: var(--F-BODY); -webkit-font-smoothing: 
 /* fundos */
 .slide.light    { background: var(--LB); color: var(--DT); }
 .slide.dark     { background: var(--DB); color: var(--LT); }
-.slide.gradient { background: var(--G);  color: var(--LT); }
-.slide.alert    { background: var(--G-ALERT); color: var(--LT); }
+.slide.gradient { background: var(--G);  color: var(--FG-G); }
+.slide.alert    { background: var(--G-ALERT); color: var(--FG-ALERT); }
 
 /* faixa de acento no topo */
 .slide::before {
@@ -53,10 +53,8 @@ body { background: #2a2a2a; font-family: var(--F-BODY); -webkit-font-smoothing: 
 
 /* scrim de contraste (div real, atrás do conteúdo): texto legível sobre gradiente/alert/imagem */
 .scrim { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
-.slide.gradient .scrim, .slide.alert .scrim {
-  background: linear-gradient(to top, rgba(0,0,0,.88) 0%, rgba(0,0,0,.68) 52%, rgba(0,0,0,.48) 100%);
-}
-.slide.has-img.dark .scrim { background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,.15) 60%, transparent); }
+.slide.gradient .scrim, .slide.alert .scrim { background: var(--SCRIM); }
+.slide.has-img.dark .scrim { background: var(--SCRIM-IMG); }
 
 /* ---------- SKIN HOOK (assinatura visual da marca, atrás do conteúdo) ----------
    A skin.css da marca é injetada após este arquivo e pode estilizar .skin-layer
