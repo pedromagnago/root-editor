@@ -419,6 +419,63 @@ export async function fetchSkillFiles(id: string): Promise<SkillFileEntry[]> {
   }
 }
 
+// Configuração que a skill declara via `od.inputs`. Separada de fetchSkills:
+// a listagem traz só a declaração, estas rotas resolvem opções dinâmicas
+// (ex.: as marcas do cliente) e o valor atual.
+export interface SkillConfigField {
+  name: string;
+  label?: string;
+  // Mesma união do InputFieldSchema dos plugins: o daemon já normaliza os
+  // apelidos do protocolo (`enum`→`select`, `integer`→`number`) antes de
+  // devolver, então o formulário de plugins renderiza isto sem adaptador.
+  type?: 'string' | 'text' | 'select' | 'number' | 'boolean' | 'file';
+  required?: boolean;
+  options?: string[];
+  optionLabels?: Record<string, string>;
+  placeholder?: string;
+  default?: unknown;
+  unresolved?: boolean;
+  // O InputFieldSchema dos plugins é `.passthrough()`, então campos extras
+  // (optionLabels, unresolved) sobrevivem à validação e chegam ao formulário.
+  // A index signature é o que torna este tipo atribuível ao dele.
+  [key: string]: unknown;
+}
+
+export interface SkillConfigView {
+  fields: SkillConfigField[];
+  values: Record<string, unknown>;
+}
+
+export async function fetchSkillConfig(id: string): Promise<SkillConfigView | null> {
+  try {
+    const resp = await fetch(`/api/skills/${encodeURIComponent(id)}/config`);
+    if (!resp.ok) return null;
+    return (await resp.json()) as SkillConfigView;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveSkillConfig(
+  id: string,
+  values: Record<string, unknown>,
+): Promise<SkillConfigView> {
+  const resp = await fetch(`/api/skills/${encodeURIComponent(id)}/config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ values }),
+  });
+  if (!resp.ok) {
+    let message = 'Failed to save skill configuration';
+    try {
+      const body = await resp.json();
+      if (body?.error?.message) message = body.error.message;
+    } catch { /* usa a mensagem padrão */ }
+    throw new Error(message);
+  }
+  return (await resp.json()) as SkillConfigView;
+}
+
 export async function deleteSkill(
   id: string,
 ): Promise<{ ok: true } | { error: SkillImportError }> {

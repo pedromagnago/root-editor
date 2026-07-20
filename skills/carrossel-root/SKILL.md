@@ -12,6 +12,14 @@ od:
   # entraria em contradição com o brand pack no mesmo run.
   design_system:
     requires: false
+  # Configuração editável no painel de skills. `options_source` resolve a lista
+  # em runtime (as marcas do cliente não cabem aqui) e é também por onde o PUT
+  # persiste — direto no store que a skill lê na seção 0, sem segunda cópia.
+  config:
+    - name: marca
+      label: Marca ativa
+      type: select
+      options_source: carousel-brands
 triggers:
   - "carrossel"
   - "carousel"

@@ -551,6 +551,9 @@ export interface Dict {
   'settings.skillsSaving': string;
   'settings.skillsFiles': string;
   'settings.skillsNoFiles': string;
+  'settings.skillsConfig': string;
+  'settings.skillsConfigFailed': string;
+  'settings.skillsConfigSaving': string;
   'settings.skillsNameRequired': string;
   'settings.skillsBodyRequired': string;
   'settings.designSystems': string;

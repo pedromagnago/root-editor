@@ -47,6 +47,7 @@ interface SkillFrontmatter extends JsonRecord {
     preview?: JsonRecord;
     design_system?: JsonRecord;
     critique?: JsonRecord;
+    config?: unknown;
     category?: unknown;
   };
 }
@@ -56,6 +57,21 @@ interface SkillFrontmatter extends JsonRecord {
 // UI uses this to render an origin pill and to gate destructive actions:
 // only `user` skills can be deleted via /api/skills/:id.
 export type SkillSource = "user" | "built-in";
+
+// Campo de configuração declarado por uma skill. Espelha o InputFieldSchema
+// dos plugins (packages/contracts/src/plugins/manifest.ts) mais
+// `optionsSource`, que os plugins não têm.
+export interface SkillConfigFieldSpec {
+  name: string;
+  label?: string;
+  type: string;
+  required?: boolean;
+  options?: string[];
+  placeholder?: string;
+  default?: unknown;
+  /** Nome da fonte que resolve as opções em runtime (ex.: 'carousel-brands'). */
+  optionsSource?: string;
+}
 
 export interface SkillInfo {
   id: string;
@@ -68,6 +84,8 @@ export interface SkillInfo {
   surface: SkillSurface;
   source: SkillSource;
   craftRequires: string[];
+  /** Campos de configuração da skill (`od.config`). Vazio quando não declara. */
+  configFields: SkillConfigFieldSpec[];
   platform: SkillPlatform;
   scenario: string;
   // Optional human-readable category (e.g. "image-generation", "video",
@@ -197,6 +215,7 @@ export async function listSkills(
           typeof data.od?.design_system?.requires === "boolean"
             ? data.od.design_system.requires
             : true;
+        const configFields = normalizeSkillConfigFields(data.od?.config);
         const upstream =
           typeof data.od?.upstream === "string" ? data.od.upstream : null;
         const previewType =
@@ -233,6 +252,7 @@ export async function listSkills(
           surface,
           source,
           craftRequires: normalizeCraftRequires(data.od?.craft?.requires),
+          configFields,
           platform,
           scenario,
           category,
@@ -279,6 +299,7 @@ export async function listSkills(
             surface,
             source,
             craftRequires: [],
+            configFields: [],
             platform,
             scenario,
             category,
@@ -480,6 +501,63 @@ async function dirHasAttachments(dir: string): Promise<boolean> {
 // daemon-side allowlist to keep in sync. The compose path checks the
 // file actually exists before injecting; missing files fall through
 // silently. The frontend can render the requested list verbatim.
+// `od.config` — campos de configuração persistente que a skill expõe no painel.
+//
+// Chave própria de propósito. `od.inputs`, no protocolo, é entrada de
+// INVOCAÇÃO ("typed form instead of free-text" ao rodar a skill) e três skills
+// do upstream já a declaram; reusá-la faria o painel oferecer configuração
+// para campos que não têm onde ser persistidos.
+//
+// O vocabulário do protocolo diverge do InputFieldSchema dos plugins
+// (`enum`/`values` vs `select`/`options`, `integer` vs `number`). Aceitamos as
+// duas grafias e normalizamos para a do plugin, que é a que o formulário React
+// já sabe renderizar — assim reusamos PluginInputsForm em vez de escrever um
+// segundo formulário.
+const SKILL_CONFIG_TYPES = new Set(['string', 'text', 'select', 'number', 'boolean', 'file']);
+const SKILL_CONFIG_TYPE_ALIASES: Record<string, string> = { enum: 'select', integer: 'number' };
+const MAX_SKILL_CONFIG_FIELDS = 24;
+
+function normalizeSkillConfigFields(value: unknown): SkillConfigFieldSpec[] {
+  if (!Array.isArray(value)) return [];
+  const seen = new Set<string>();
+  const out: SkillConfigFieldSpec[] = [];
+  for (const raw of value) {
+    if (!isRecord(raw)) continue;
+    // Frontmatter com `- name:` (valor vazio) descarta a chave inteira: sem
+    // nome não há como persistir nem renderizar o campo.
+    const name = typeof raw.name === 'string' ? raw.name.trim() : '';
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+
+    const rawType = typeof raw.type === 'string' ? raw.type.trim().toLowerCase() : '';
+    const type = SKILL_CONFIG_TYPE_ALIASES[rawType] ?? rawType;
+    const options = Array.isArray(raw.options)
+      ? raw.options
+      : Array.isArray(raw.values)
+        ? raw.values
+        : undefined;
+
+    out.push({
+      name,
+      ...(typeof raw.label === 'string' ? { label: raw.label } : {}),
+      type: SKILL_CONFIG_TYPES.has(type) ? type : 'string',
+      ...(raw.required === true ? { required: true } : {}),
+      ...(options ? { options: options.filter((o): o is string => typeof o === 'string') } : {}),
+      ...(typeof raw.placeholder === 'string' ? { placeholder: raw.placeholder } : {}),
+      ...(raw.default !== undefined ? { default: raw.default } : {}),
+      // Opções resolvidas em runtime (a lista de marcas do cliente não cabe no
+      // frontmatter). O núcleo de skills só carrega o NOME da fonte — quem
+      // resolve é skill-config/sources.ts, para que skills.ts nunca precise
+      // importar nada de carrossel.
+      ...(typeof raw.options_source === 'string'
+        ? { optionsSource: raw.options_source.trim() }
+        : {}),
+    });
+    if (out.length >= MAX_SKILL_CONFIG_FIELDS) break;
+  }
+  return out;
+}
+
 function normalizeCraftRequires(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   const seen = new Set<string>();

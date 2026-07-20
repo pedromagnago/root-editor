@@ -13,6 +13,7 @@ import {
   splitDerivedSkillId,
   updateUserSkill,
 } from '../skills.js';
+import { applySkillConfig, resolveSkillConfig, skillHasConfig } from '../skill-config.js';
 import { listCodexPets, readCodexPetSpritesheet } from '../codex-pets.js';
 import { syncCommunityPets } from '../community-pets-sync.js';
 import { readDesignSystem } from '../design-systems/index.js';
@@ -306,6 +307,48 @@ export function registerStaticResourceRoutes(app: Express, ctx: RegisterStaticRe
       }
       const files = await listSkillFiles(skill.dir);
       res.json({ files });
+    } catch (err: any) {
+      sendApiError(res, 500, 'INTERNAL_ERROR', String(err));
+    }
+  });
+
+  // GET/PUT /api/skills/:id/config — configuração que a skill declara via
+  // `od.inputs`. Separado de GET /api/skills de propósito: a listagem carrega
+  // só a DECLARAÇÃO (barata, e já re-escaneia o disco a cada request), estas
+  // rotas resolvem as opções dinâmicas e o valor atual.
+  //
+  // O PUT delega ao store que já é a fonte da verdade do campo — não grava uma
+  // cópia em app-config.json. Duas fontes divergiriam do que o agente lê.
+  app.get('/api/skills/:id/config', async (req, res) => {
+    try {
+      const skill = findSkillById(await listAllSkills(), req.params.id);
+      if (!skill) return sendApiError(res, 404, 'NOT_FOUND', 'skill not found');
+      if (!skillHasConfig(skill)) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'skill declares no config');
+      }
+      res.json(await resolveSkillConfig(skill));
+    } catch (err: any) {
+      sendApiError(res, 500, 'INTERNAL_ERROR', String(err));
+    }
+  });
+
+  app.put('/api/skills/:id/config', async (req, res) => {
+    try {
+      const skill = findSkillById(await listAllSkills(), req.params.id);
+      if (!skill) return sendApiError(res, 404, 'NOT_FOUND', 'skill not found');
+      if (!skillHasConfig(skill)) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'skill declares no config');
+      }
+      const values = (req.body || {}).values;
+      if (!values || typeof values !== 'object' || Array.isArray(values)) {
+        return sendApiError(res, 400, 'BAD_REQUEST', 'values must be an object');
+      }
+      try {
+        await applySkillConfig(skill, values as Record<string, unknown>);
+      } catch (err: any) {
+        return sendApiError(res, 400, 'BAD_REQUEST', String(err?.message || err));
+      }
+      res.json(await resolveSkillConfig(skill));
     } catch (err: any) {
       sendApiError(res, 500, 'INTERNAL_ERROR', String(err));
     }

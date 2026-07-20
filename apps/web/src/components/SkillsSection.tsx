@@ -12,12 +12,16 @@ import type { SkillSummary } from '@open-design/contracts';
 import {
   deleteSkill,
   fetchSkill,
+  fetchSkillConfig,
   fetchSkillFiles,
   fetchSkills,
   importSkill,
+  saveSkillConfig,
   updateSkill,
+  type SkillConfigView,
   type SkillFileEntry,
 } from '../providers/registry';
+import { PluginInputsForm } from './PluginInputsForm';
 
 // Functional skills only — design templates render in EntryView's
 // Templates tab and are managed under their own daemon registry. See
@@ -97,6 +101,12 @@ export function SkillsSection({ cfg, setCfg, onSkillsRefresh, onSkillsChanged }:
   // row is instant after the first fetch.
   const [filesById, setFilesById] = useState<Record<string, SkillFileEntry[]>>({});
   const [filesLoadingId, setFilesLoadingId] = useState<string | null>(null);
+
+  // Configuração da skill (`od.config`), cacheada igual ao body/arquivos.
+  const [configById, setConfigById] = useState<Record<string, SkillConfigView>>({});
+  const [configLoadingId, setConfigLoadingId] = useState<string | null>(null);
+  const [configSavingId, setConfigSavingId] = useState<string | null>(null);
+  const [configError, setConfigError] = useState<string | null>(null);
 
   // One row expanded at a time — keeps the section scannable. `null`
   // means every row is collapsed.
@@ -208,12 +218,54 @@ export function SkillsSection({ cfg, setCfg, onSkillsRefresh, onSkillsChanged }:
     [filesById],
   );
 
+  // Configuração declarada pela skill (`od.config`), no mesmo esquema lazy do
+  // body e da árvore de arquivos. Skill sem config nunca chega aqui — a linha
+  // só renderiza a seção quando `inputs` vem preenchido na listagem.
+  const ensureConfig = useCallback(
+    async (id: string) => {
+      if (configById[id]) return configById[id]!;
+      setConfigLoadingId(id);
+      try {
+        const config = await fetchSkillConfig(id);
+        if (config) setConfigById((cur) => ({ ...cur, [id]: config }));
+        return config;
+      } finally {
+        setConfigLoadingId((cur) => (cur === id ? null : cur));
+      }
+    },
+    [configById],
+  );
+
+  const changeConfig = useCallback(
+    async (id: string, values: Record<string, unknown>) => {
+      const previous = configById[id];
+      setConfigError(null);
+      // Otimista, com rollback — mesmo padrão do seletor de marca no painel de
+      // criação, e coerente com o toggle de habilitar que fica na mesma linha.
+      if (previous) {
+        setConfigById((cur) => ({ ...cur, [id]: { ...previous, values } }));
+      }
+      setConfigSavingId(id);
+      try {
+        const saved = await saveSkillConfig(id, values);
+        setConfigById((cur) => ({ ...cur, [id]: saved }));
+      } catch (err) {
+        if (previous) setConfigById((cur) => ({ ...cur, [id]: previous }));
+        setConfigError(err instanceof Error ? err.message : String(err));
+      } finally {
+        setConfigSavingId((cur) => (cur === id ? null : cur));
+      }
+    },
+    [configById],
+  );
+
   const toggleExpanded = useCallback(
     (id: string) => {
       setExpandedId((cur) => {
         if (cur === id) return null;
         void ensureBody(id);
         void ensureFiles(id);
+        void ensureConfig(id);
         return id;
       });
       // Switching rows aborts any in-flight edit on the previous row.
@@ -221,7 +273,7 @@ export function SkillsSection({ cfg, setCfg, onSkillsRefresh, onSkillsChanged }:
       setConfirmDeleteId(null);
       setConfirmBuiltInEditId(null);
     },
-    [ensureBody, ensureFiles],
+    [ensureBody, ensureFiles, ensureConfig],
   );
 
   const startCreate = useCallback(() => {
@@ -495,6 +547,11 @@ export function SkillsSection({ cfg, setCfg, onSkillsRefresh, onSkillsChanged }:
                 editing={isEditing}
                 body={bodyById[skill.id]}
                 bodyLoading={bodyLoadingId === skill.id}
+                config={configById[skill.id] ?? null}
+                configLoading={configLoadingId === skill.id}
+                configSaving={configSavingId === skill.id}
+                configError={configError}
+                onChangeConfig={(values) => void changeConfig(skill.id, values)}
                 files={filesById[skill.id] ?? null}
                 filesLoading={filesLoadingId === skill.id}
                 confirmDelete={confirmDeleteId === skill.id}
@@ -529,6 +586,11 @@ interface SkillRowProps {
   editing: boolean;
   body: string | undefined;
   bodyLoading: boolean;
+  config: SkillConfigView | null;
+  configLoading: boolean;
+  configSaving: boolean;
+  configError: string | null;
+  onChangeConfig: (values: Record<string, unknown>) => void;
   files: SkillFileEntry[] | null;
   filesLoading: boolean;
   confirmDelete: boolean;
@@ -556,6 +618,11 @@ function SkillRow({
   editing,
   body,
   bodyLoading,
+  config,
+  configLoading,
+  configSaving,
+  configError,
+  onChangeConfig,
   files,
   filesLoading,
   confirmDelete,
@@ -717,6 +784,33 @@ function SkillRow({
 
       {expanded && !editing ? (
         <div className="skills-row-detail">
+          {/* Config primeiro: é o acionável da linha. O SKILL.md abaixo é
+              referência. Só renderiza para skills que declaram `od.inputs`,
+              então as demais ficam visualmente idênticas ao que eram. */}
+          {skill.configFields && skill.configFields.length > 0 ? (
+            <div className="skills-row-section">
+              <h5>{t('settings.skillsConfig')}</h5>
+              {configLoading ? (
+                <p className="library-empty">{t('settings.libraryLoading')}</p>
+              ) : !config ? (
+                <p className="library-empty">{t('settings.skillsConfigFailed')}</p>
+              ) : (
+                <>
+                  <PluginInputsForm
+                    fields={config.fields}
+                    values={config.values}
+                    onChange={onChangeConfig}
+                  />
+                  {configSaving ? (
+                    <p className="library-empty">{t('settings.skillsConfigSaving')}</p>
+                  ) : null}
+                  {configError ? (
+                    <p className="library-empty" role="alert">{configError}</p>
+                  ) : null}
+                </>
+              )}
+            </div>
+          ) : null}
           <div className="skills-row-section">
             <h5>SKILL.md</h5>
             {bodyLoading ? (

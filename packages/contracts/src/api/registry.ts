@@ -173,6 +173,23 @@ export interface SkillSummary {
   speakerNotes?: boolean | null;
   animations?: boolean | null;
   craftRequires?: string[];
+  /**
+   * Campos de configuração que a skill expõe no painel (`od.config` no
+   * frontmatter). A listagem carrega só a DECLARAÇÃO — opções dinâmicas e
+   * valor atual vêm de `/api/skills/:id/config`, para não pagar resolução
+   * em runtime num endpoint que re-escaneia o disco a cada request.
+   * Ausente/vazio na esmagadora maioria das skills.
+   */
+  configFields?: Array<{
+    name: string;
+    label?: string;
+    type?: string;
+    required?: boolean;
+    options?: string[];
+    placeholder?: string;
+    default?: unknown;
+    optionsSource?: string;
+  }>;
   hasBody: boolean;
   examplePrompt: string;
   examplePromptI18n?: Record<string, string>;
