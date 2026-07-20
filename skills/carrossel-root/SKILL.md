@@ -58,7 +58,7 @@ Com o slug em mãos, carregue `~/.maquina-carrossel/marcas/<slug>/brand.json`.
   > 1) Marca + @ do Instagram  2) Nicho  3) Cor principal (hex ou "não sei")  4) Estilo visual (clássico / moderno / minimalista / bold)  5) CTA do último slide  6) Quantos slides (5/7/9)
   Com as respostas, **monte e salve** `~/.maquina-carrossel/marcas/<slug>/brand.json` (schema em `schemas/brand-pack.schema.json` desta skill), marque como ativa em `config.json` **e carimbe este projeto** gravando `./.marca.json` com `{"marca": "<slug>"}` — sem o carimbo, este deck volta a depender da config global, que muda quando o cliente criar o próximo carrossel. Nunca gere o deck com marca vazia.
 
-**Modo:** se o usuário pedir "auto" (ou `--auto`), avance os gates sozinho (escolha a headline de maior tensão e o framework coerente, justifique em 1 linha) e entregue com 1 confirmação. Sem isso = **guiado** (gates abaixo).
+**Modo:** se o usuário pedir "auto" (ou `--auto`), avance os gates sozinho (escolha a headline de maior tensão e o template coerente, justifique cada um em 1 linha) e entregue com 1 confirmação. Sem isso = **guiado** (gates abaixo).
 
 ## 1. Fluxo editorial (você conduz, gates conversacionais)
 
@@ -91,9 +91,23 @@ Direção: <o próximo passo lógico — sem CTA comercial aqui>
 ```
 Feche com `Estrutura aprovada? (ok / ajustar)` e pare.
 
-**Etapa 4 — Texto final dos slides.** Defina o framework (de `frameworks-slide.md`) e o nº de slides conforme a intenção/triagem (ou o que a marca pediu no intake). Escreva o **texto de cada slide** seguindo a densidade do `manual-qualidade.md`: **no máximo 2 blocos por slide** (bloco 1 contextualiza, bloco 2 aprofunda/contradiz), específico, com dado+fonte+ano onde houver número, **sem 2ª pessoa**, capa com headline curta (6–8 palavras) e o destaque em `<em>`, último slide com CTA único e diretivo. Mostre o texto numerado por slide e feche com `Revisa. Quando estiver ok, digito o visual. (ok / ajustar slide N)`. Pare.
+**Etapa 4 — Template.** Só agora, com a espinha na mão, você tem o que precisa para escolher a estrutura — por isso este gate vem depois dela, não antes. **Recomende um** dos 5 de `frameworks-slide.md` e justifique em uma linha ligada à espinha real (não genérica). O usuário decide:
+```
+Template recomendado: <N) Nome (X slides)> — <por que ESTE, ligado à tese/prova desta peça>
 
-**Etapa 5 — Imagens (pergunte SEMPRE, é obrigatório).** Depois do texto aprovado, antes de gerar o deck, pergunte:
+1) A Armadilha (6)      — <quando usar, 1 linha de frameworks-slide.md>
+2) O Raio-X (7)         — <idem>
+3) Dados que Decidem (6)— <idem>
+4) Caso na Prática (6)  — <idem>
+5) Nicho Attack (7)     — <idem>
+
+Escolhe 1–5, ou "ok" para o recomendado.
+```
+O template escolhido define a estrutura **e** o nº de slides. Se o intake da marca pediu outra contagem, o template manda na estrutura e você ajusta o miolo (repetir ou fundir slides de método/prova) — **nunca** mexa na capa nem no fechamento. Feche o gate e pare.
+
+**Etapa 5 — Texto final dos slides.** Siga a tabela do template escolhido na Etapa 4 (papel, `bg` e componentes por slide já vêm de lá — não reinvente a estrutura). Escreva o **texto de cada slide** seguindo a densidade do `manual-qualidade.md`: **no máximo 2 blocos por slide** (bloco 1 contextualiza, bloco 2 aprofunda/contradiz), específico, com dado+fonte+ano onde houver número, **sem 2ª pessoa**, capa com headline curta (6–8 palavras) e o destaque em `<em>`, último slide com CTA único e diretivo. Mostre o texto numerado por slide e feche com `Revisa. Quando estiver ok, digito o visual. (ok / ajustar slide N)`. Pare.
+
+**Etapa 6 — Imagens (pergunte SEMPRE, é obrigatório).** Depois do texto aprovado, antes de gerar o deck, pergunte:
 ```
 Quer imagem em algum slide? Arrasta o arquivo aqui (ou cola o caminho) dizendo o slide — ex.: "capa" ou "slide 3". Pode mandar mais de uma. Ou responde "sem imagem".
 ```
@@ -101,7 +115,7 @@ Quer imagem em algum slide? Arrasta o arquivo aqui (ou cola o caminho) dizendo o
 - Sugira onde imagem agrega (capa, slide de prova/caso); se o brand pack tem logo/fotos, pode oferecer. **Nunca invente arquivo** — só usa o que o usuário mandar.
 - Copie cada arquivo recebido para `assets/<nome>` **dentro do projeto** (crie a pasta se preciso) e use o caminho relativo no `slides.json`: `imagem: { "tipo": "local", "ref": "assets/<nome>" }`. Slides sem imagem → `{ "tipo": "none" }`.
 
-Controles: `refazer headlines`, `reiniciar`, resposta incompatível → repita só a instrução mínima da etapa. Em modo auto, pule os gates com defaults (sem imagem, salvo se o usuário já anexou arquivos) e vá à entrega.
+Controles: `refazer headlines`, `reiniciar`, `trocar template` (volta à Etapa 4 e reescreve o texto na nova estrutura), resposta incompatível → repita só a instrução mínima da etapa. Em modo auto, pule os gates com defaults (template = o que você recomendaria; sem imagem, salvo se o usuário já anexou arquivos) e vá à entrega — mas **diga qual template usou e por quê**, senão a escolha estrutural fica invisível.
 
 ## 2. Entrega do contrato (o editor assume o render)
 > **Nada de renderizar aqui.** O Root Editor detecta o `slides.json`, valida contra o contrato, gera o deck e abre a peça no painel de edição visual. Seu trabalho termina no contrato bem-formado.
