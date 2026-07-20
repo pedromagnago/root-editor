@@ -18,9 +18,11 @@ import path from 'node:path';
 import { existsSync } from 'node:fs';
 import { readFile, writeFile } from 'node:fs/promises';
 
+import { normalizeBrandRef } from './carousel-brand.js';
 import {
   CarouselContractError,
   carouselArtifactJson,
+  logBrandDegradation,
   parseCarouselSlides,
   writeCarouselDeck,
 } from './carousel-import.js';
@@ -120,8 +122,48 @@ export function startCarouselAutoRender(deps: CarouselAutoRenderDeps): CarouselA
       return;
     }
 
-    await writeCarouselDeck(dir, CAROUSEL_ENTRY, deck);
-    lastRendered.set(projectId, raw);
+    const metadata = (project.metadata ?? {}) as Record<string, unknown>;
+    const projectMarca = typeof metadata.marca === 'string' ? metadata.marca : null;
+
+    // O agente grava `brand_pack_ref` como caminho absoluto (SKILL.md §contrato).
+    // Caminho absoluto não é portável entre máquinas, e o invariante declarado
+    // em carousel-brand.ts diz que o working copy guarda slug. O import já
+    // normalizava; este é o caminho REAL de produção e não normalizava nada.
+    //
+    // Divergência deliberada em relação ao import: quando o ref não resolve, o
+    // import APAGA o campo — é primeiro contato com entrada externa, e derrubar
+    // um ref hostil é o certo. Aqui nós PRESERVAMOS: é o working copy do
+    // usuário, e uma falha transitória (marca renomeada, pasta movida) não pode
+    // destruir a intenção dele de forma irreversível. O render cai no fallback
+    // e o `brand_degraded` registra o motivo.
+    let effectiveRaw = raw;
+    const normalized = normalizeBrandRef(deck.brand_pack_ref);
+    if (normalized && normalized !== deck.brand_pack_ref) {
+      deck.brand_pack_ref = normalized;
+      const rewritten = JSON.stringify(deck, null, 2);
+      // Guarda de concorrência: o agente pode ter reescrito slides.json
+      // enquanto normalizávamos. Só persistimos se o disco ainda for o que
+      // lemos — senão sobrescreveríamos a versão mais nova dele.
+      let current: string | null = null;
+      try {
+        current = await readFile(slidesPath, 'utf8');
+      } catch {
+        current = null;
+      }
+      if (current === raw) {
+        await writeFile(slidesPath, rewritten, 'utf8');
+        effectiveRaw = rewritten;
+      }
+    }
+
+    const rendered = await writeCarouselDeck(dir, CAROUSEL_ENTRY, deck, undefined, {
+      projectMarca,
+    });
+    logBrandDegradation(rendered.brand, { traceId, projectId });
+    // Tem que ser o conteúdo EFETIVAMENTE no disco: se guardássemos `raw`, a
+    // nossa própria escrita de normalização dispararia o watcher e geraria um
+    // segundo render (auto-terminante, mas desperdiçado e com log duplicado).
+    lastRendered.set(projectId, effectiveRaw);
 
     // First render of a chat-created project: it has no deck manifest yet
     // and is not marked a carousel import. Materialize both so the viewer
@@ -135,7 +177,6 @@ export function startCarouselAutoRender(deps: CarouselAutoRenderDeps): CarouselA
         'utf8',
       );
     }
-    const metadata = (project.metadata ?? {}) as Record<string, unknown>;
     if (metadata.importedFrom !== 'carousel') {
       deps.updateProject(projectId, {
         metadata: { ...metadata, carousel: true, importedFrom: 'carousel', entryFile: CAROUSEL_ENTRY },

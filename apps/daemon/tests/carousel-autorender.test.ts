@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
+
 import { startCarouselAutoRender, isCarouselProject } from '../src/carousel-autorender.js';
 
 // The real chokidar wiring is validated live (a slides.json write on disk
@@ -173,5 +174,160 @@ describe('carousel auto-render service', () => {
     await new Promise((r) => setTimeout(r, 80));
 
     expect(await readFile(path.join(dir, 'deck.html'), 'utf8')).toBe('GOOD-DECK');
+  });
+
+  // Regressão: este é o caminho REAL de produção (agente escreve slides.json →
+  // autorender). Antes ele não normalizava nem logava nada — só o import fazia.
+  describe('brand_pack_ref', () => {
+    const homes: string[] = [];
+
+    afterEach(() => {
+      delete process.env.MAQUINA_CARROSSEL_HOME;
+      for (const dir of homes.splice(0)) rmSync(dir, { recursive: true, force: true });
+    });
+
+    async function makeHomeWithBrand(slug: string): Promise<string> {
+      const home = mkdtempSync(path.join(tmpdir(), 'od-autorender-home-'));
+      homes.push(home);
+      process.env.MAQUINA_CARROSSEL_HOME = home;
+      const brandDir = path.join(home, 'marcas', slug);
+      await mkdir(brandDir, { recursive: true });
+      await writeFile(
+        path.join(brandDir, 'brand.json'),
+        JSON.stringify({
+          $schema: 'brandpack/v1',
+          slug,
+          nome: slug.toUpperCase(),
+          handle: `@${slug}`,
+          visual_tokens: {
+            cores: { primaria: '#0057FF' },
+            fontes: { headline: 'Inter', body: 'Inter' },
+          },
+        }),
+        'utf8',
+      );
+      return home;
+    }
+
+    // Captura as linhas JSON que o logger estruturado escreve em stdout.
+    function captureLog(): { lines: () => any[]; restore: () => void } {
+      const original = process.stdout.write.bind(process.stdout);
+      const captured: any[] = [];
+      (process.stdout as any).write = (chunk: any, ...rest: any[]) => {
+        const text = typeof chunk === 'string' ? chunk : String(chunk);
+        for (const line of text.split('\n')) {
+          if (!line.trim().startsWith('{')) continue;
+          try {
+            const parsed = JSON.parse(line);
+            if (parsed.namespace === 'carousel') captured.push(parsed);
+          } catch {
+            /* linha não-JSON do runner */
+          }
+        }
+        return (original as any)(chunk, ...rest);
+      };
+      return { lines: () => captured, restore: () => { (process.stdout as any).write = original; } };
+    }
+
+    async function renderWith(
+      id: string,
+      deckPatch: Record<string, unknown>,
+      projectMetadata: Record<string, unknown> = { importedFrom: 'carousel', entryFile: 'deck.html' },
+    ) {
+      const store = new Map<string, any>();
+      store.set(id, { id, name: 'Deck', metadata: projectMetadata });
+      const { svc, projectsDir, fire } = harness(store);
+      const dir = path.join(projectsDir, id);
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, 'deck.html'), 'OLD', 'utf8');
+      await writeFile(path.join(dir, 'deck.html.artifact.json'), '{}', 'utf8');
+      svc.ensureWatching(id);
+      const raw = JSON.stringify({ ...validDeck(), ...deckPatch });
+      await writeFile(path.join(dir, 'slides.json'), raw, 'utf8');
+      await fire(id);
+      await new Promise((r) => setTimeout(r, 80));
+      return { dir, raw, store };
+    }
+
+    it('normaliza caminho absoluto para slug no slides.json', async () => {
+      const home = await makeHomeWithBrand('acme');
+      const abs = path.join(home, 'marcas', 'acme', 'brand.json');
+      const { dir } = await renderWith('b1', { brand_pack_ref: abs });
+
+      const stored = JSON.parse(await readFile(path.join(dir, 'slides.json'), 'utf8'));
+      expect(stored.brand_pack_ref).toBe('acme');
+      expect(await readFile(path.join(dir, 'deck.html'), 'utf8')).toContain('#0057ff');
+    });
+
+    it('não reescreve quando o ref já é slug', async () => {
+      await makeHomeWithBrand('acme');
+      const { dir, raw } = await renderWith('b2', { brand_pack_ref: 'acme' });
+
+      // Byte a byte: sem reescrita desnecessária, sem render em loop.
+      expect(await readFile(path.join(dir, 'slides.json'), 'utf8')).toBe(raw);
+    });
+
+    it('preserva o ref que não resolve e registra brand_degraded', async () => {
+      await makeHomeWithBrand('acme');
+      const log = captureLog();
+      let dir: string;
+      try {
+        ({ dir } = await renderWith('b3', { brand_pack_ref: '/etc/passwd' }));
+      } finally {
+        log.restore();
+      }
+
+      // Divergência deliberada com o import, que apagaria o campo: aqui é o
+      // working copy do usuário e a intenção dele não é destruída.
+      const stored = JSON.parse(await readFile(path.join(dir!, 'slides.json'), 'utf8'));
+      expect(stored.brand_pack_ref).toBe('/etc/passwd');
+
+      const degraded = log.lines().find((l) => l.event === 'brand_degraded');
+      expect(degraded).toBeDefined();
+      expect(degraded.reason).toBe('brand_outside_root');
+      expect(degraded.requestedKind).toBe('absolute_path');
+      // Privacidade: nunca o caminho do cliente, só o código e o slug.
+      expect(degraded.requested).toBeNull();
+      expect(JSON.stringify(degraded)).not.toContain('/etc/passwd');
+    });
+
+    it('usa o carimbo do projeto quando o deck não traz ref', async () => {
+      await makeHomeWithBrand('acme');
+      const { dir } = await renderWith(
+        'b4',
+        {},
+        { importedFrom: 'carousel', entryFile: 'deck.html', marca: 'acme' },
+      );
+
+      expect(await readFile(path.join(dir, 'deck.html'), 'utf8')).toContain('#0057ff');
+    });
+
+    it('o ref do deck vence o carimbo do projeto', async () => {
+      const home = await makeHomeWithBrand('acme');
+      // Segunda marca, com cor distinta, carimbada no projeto.
+      const otherDir = path.join(home, 'marcas', 'outra');
+      await mkdir(otherDir, { recursive: true });
+      await writeFile(
+        path.join(otherDir, 'brand.json'),
+        JSON.stringify({
+          $schema: 'brandpack/v1',
+          slug: 'outra',
+          nome: 'OUTRA',
+          handle: '@outra',
+          visual_tokens: { cores: { primaria: '#FF0000' }, fontes: { headline: 'Inter', body: 'Inter' } },
+        }),
+        'utf8',
+      );
+
+      const { dir } = await renderWith(
+        'b5',
+        { brand_pack_ref: 'acme' },
+        { importedFrom: 'carousel', entryFile: 'deck.html', marca: 'outra' },
+      );
+
+      const html = await readFile(path.join(dir, 'deck.html'), 'utf8');
+      expect(html).toContain('#0057ff');
+      expect(html).not.toContain('#ff0000');
+    });
   });
 });
