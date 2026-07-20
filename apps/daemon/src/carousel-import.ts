@@ -22,12 +22,17 @@ const BASE_SKIN_CSS_PATH = nodePath.resolve(
 
 const SLIDE_BGS = new Set(['light', 'dark', 'gradient', 'alert']);
 const SLIDE_TIPOS = new Set(['capa', 'conteudo', 'fechamento']);
+// Espelham os enums de `skills/carrossel-root/schemas/slides.schema.json`.
+// São duas listas porque a validação roda no daemon e o schema documenta o
+// contrato para o agente — ao adicionar um framework ou componente, mude os
+// DOIS lados, senão o agente escreve um deck que o render recusa.
 const FRAMEWORKS = new Set([
   'armadilha',
   'raio-x',
   'dados-decidem',
   'caso-pratica',
   'nicho-attack',
+  'thread',
 ]);
 const COMPONENT_TIPOS = new Set([
   'data-pill',
@@ -37,6 +42,7 @@ const COMPONENT_TIPOS = new Set([
   'numbered-steps',
   'table',
   'cta-button',
+  'x-post',
 ]);
 
 export interface CarouselComponent {
@@ -53,6 +59,15 @@ export interface CarouselComponent {
   passos?: Array<{ numero?: string; titulo?: string; texto?: string }>;
   colunas?: string[];
   linhas?: string[][];
+  // x-post: por padrão o card herda handle/marca do meta do deck. Estes só
+  // entram quando o post citado é de outra pessoa.
+  autor?: string;
+  handle?: string;
+  /** `false` esconde a fileira de ícones. Não existe contagem: forjar número
+   *  de curtida num post que nunca foi publicado é fabricar prova social. */
+  acoes?: boolean;
+  /** Desenha o fio ligando este card ao próximo (sequência tipo thread). */
+  thread?: boolean;
 }
 
 export interface CarouselSlide {
@@ -225,12 +240,31 @@ const pad2 = (n: number) => String(n).padStart(2, '0');
 
 export type CarouselImageResolver = (ref: string) => string | null;
 
-function componentHtml(c: CarouselComponent): string {
+// `brand` vem do meta do deck para o card de post herdar o handle e a inicial
+// da marca sozinho. Repetir isso em cada componente seria ruído no contrato e
+// uma chance a mais de o agente escrever o handle errado num slide só.
+function componentHtml(
+  c: CarouselComponent,
+  brand?: { handle?: string | undefined; marca?: string | undefined },
+): string {
   switch (c.tipo) {
     case 'data-pill':
       return `<div class="data-pill ${esc(c.variante || 'neutral')}"><span class="number">${esc(c.number || '')}</span><span class="label">${esc(c.label || '')}</span></div>`;
     case 'strike-pill':
       return `<div class="strike-pill"><span class="before">${esc(c.before || '')}</span><span class="after">${esc(c.after || '')}</span></div>`;
+    case 'x-post': {
+      // Handle e nome saem do meta do deck; o componente só pode sobrescrever
+      // quando o post citado é de outra pessoa (`autor`/`handle` próprios).
+      const handle = (c.handle || brand?.handle || '').replace(/^@*/, '@');
+      const nome = c.autor || brand?.marca || handle.replace(/^@/, '');
+      const inicial = (nome.trim()[0] || '@').toUpperCase();
+      const acoes = c.acoes === false ? '' : `<div class="x-actions"><span>↺</span><span>♡</span><span>↗</span></div>`;
+      return `<div class="x-post${c.thread ? ' x-thread' : ''}">` +
+        `<div class="x-head"><div class="x-ava">${esc(inicial)}</div>` +
+        `<div class="x-who"><span class="x-name">${esc(nome)}</span>` +
+        `<span class="x-handle">${esc(handle)}</span></div></div>` +
+        `<p class="x-body">${rich(c.texto || '')}</p>${acoes}</div>`;
+    }
     case 'insight-box':
       return `<div class="insight-box">${c.icon ? `<span class="icon">${esc(c.icon)}</span>` : ''}<p>${rich(c.texto || '')}</p>${c.fonte ? `<span class="source">${esc(c.fonte)}</span>` : ''}</div>`;
     case 'feature-list':
@@ -297,7 +331,9 @@ function slideHtml(
     : '';
   const head = s.headline ? `<div class="h1">${rich(s.headline)}</div>` : '';
   const blocos = (s.blocos || []).map((b) => `<div class="body">${rich(b)}</div>`).join('');
-  const comps = (s.componentes || []).map(componentHtml).join('');
+  const comps = (s.componentes || [])
+    .map((c) => componentHtml(c, { handle: meta.handle, marca: meta.marca }))
+    .join('');
   const source = s.source ? `<div class="source-badge">${esc(s.source)}</div>` : '';
   const imgBox = imgSrc ? `<div class="img-box"><img src="${imgSrc}"></div>` : '';
   let cta = '';

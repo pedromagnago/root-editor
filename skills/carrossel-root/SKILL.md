@@ -91,7 +91,7 @@ Direção: <o próximo passo lógico — sem CTA comercial aqui>
 ```
 Feche com `Estrutura aprovada? (ok / ajustar)` e pare.
 
-**Etapa 4 — Template.** Só agora, com a espinha na mão, você tem o que precisa para escolher a estrutura — por isso este gate vem depois dela, não antes. **Recomende um** dos 5 de `frameworks-slide.md` e justifique em uma linha ligada à espinha real (não genérica). O usuário decide:
+**Etapa 4 — Template.** Só agora, com a espinha na mão, você tem o que precisa para escolher a estrutura — por isso este gate vem depois dela, não antes. **Recomende um** dos 6 de `frameworks-slide.md` e justifique em uma linha ligada à espinha real (não genérica). O usuário decide:
 ```
 Template recomendado: <N) Nome (X slides)> — <por que ESTE, ligado à tese/prova desta peça>
 
@@ -100,8 +100,9 @@ Template recomendado: <N) Nome (X slides)> — <por que ESTE, ligado à tese/pro
 3) Dados que Decidem (6)— <idem>
 4) Caso na Prática (6)  — <idem>
 5) Nicho Attack (7)     — <idem>
+6) A Thread (7)         — <idem>
 
-Escolhe 1–5, ou "ok" para o recomendado.
+Escolhe 1–6, ou "ok" para o recomendado.
 ```
 O template escolhido define a estrutura **e** o nº de slides. Se o intake da marca pediu outra contagem, o template manda na estrutura e você ajusta o miolo (repetir ou fundir slides de método/prova) — **nunca** mexa na capa nem no fechamento. Feche o gate e pare.
 

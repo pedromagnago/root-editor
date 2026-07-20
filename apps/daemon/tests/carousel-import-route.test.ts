@@ -367,6 +367,45 @@ describe('POST /api/import/carousel', () => {
     expect(body.project.name).toBe('Novo carrossel');
   });
 
+  // O componente x-post herda identidade do meta e não inventa engajamento.
+  // Regressão contra as duas listas de validação (daemon + schema da skill),
+  // que precisam andar juntas: um tipo aceito só num lado produz deck que o
+  // agente escreve e o render recusa.
+  it('renderiza x-post herdando handle/marca do meta e sem contagem forjada', async () => {
+    const piece = makePieceDir();
+    const deck = validDeck();
+    (deck.meta as Record<string, unknown>).marca = 'ACME';
+    (deck.meta as Record<string, unknown>).framework = 'thread';
+    (deck.slides as Array<Record<string, unknown>>)[1] = {
+      ordem: 2,
+      bg: 'dark',
+      papel: 'O POST DE ABERTURA',
+      componentes: [{ tipo: 'x-post', texto: 'A tese em uma frase.', thread: true }],
+    };
+    (deck.slides as Array<Record<string, unknown>>)[2] = {
+      ordem: 3,
+      bg: 'dark',
+      papel: 'A CONSEQUÊNCIA',
+      componentes: [{ tipo: 'x-post', texto: 'O fechamento.', acoes: false }],
+    };
+    await writeFile(path.join(piece, 'slides.json'), JSON.stringify(deck), 'utf8');
+
+    const resp = await importCarousel({ baseDir: piece });
+    expect(resp.status).toBe(200);
+    const body = (await resp.json()) as { project: { id: string } };
+    const html = await readFile(path.join(materializedDir(body.project.id), 'deck.html'), 'utf8');
+    const rendered = html.split('</style>').pop() ?? '';
+
+    expect(rendered.match(/class="x-post/g)).toHaveLength(2);
+    // Identidade vem do meta — o componente não repete handle nem nome.
+    expect(rendered).toContain('class="x-name">ACME<');
+    expect(rendered).toContain('class="x-handle">@root<');
+    expect(rendered).toContain('class="x-ava">A<');
+    // `thread` só no primeiro; `acoes: false` some com a fileira de ícones.
+    expect(rendered.match(/x-post x-thread/g)).toHaveLength(1);
+    expect(rendered.match(/<div class="x-actions"/g)).toHaveLength(1);
+  });
+
   // Carimbo no nascimento: sem ele a marca do projeto é "o que a config global
   // disser NA HORA em que o agente rodar" — e a global muda a cada criação.
   describe('carimbo de marca na criação', () => {

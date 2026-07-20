@@ -38,6 +38,19 @@ Topo do slide, uppercase. `.niche` para segmento (Nicho Attack).
 ```
 Usar para a virada/insight ou uma fala anonimizada. Uma por slide.
 
+## x-post — card de post social (estilo timeline)
+```json
+{ "tipo": "x-post", "texto": "A frase como se fosse o post.", "thread": true }
+```
+Renderiza um card com avatar (inicial da marca), nome, `@handle` e o texto em destaque. **Handle e nome vêm sozinhos do `meta` do deck** — só informe `autor` e `handle` quando estiver citando o post de outra pessoa.
+
+- `thread: true` desenha o fio ligando este card ao próximo — use quando slides seguidos formam uma sequência de posts.
+- `acoes: false` esconde a fileira de ícones (↺ ♡ ↗).
+- **Nunca existe contagem de curtida/repost.** Número forjado num post que nunca foi publicado é prova social fabricada — e o leitor que confere descobre.
+- Um por slide. O texto é a ideia inteira do slide, então **não use junto de `blocos`**.
+
+Cores saem do brand pack, não da paleta do X: dentro de um carrossel do Instagram, um card com a cara exata de outra rede lê como screenshot de terceiro, não como peça da marca.
+
 ## feature-list — checklist de benefícios/itens
 ```html
 <div class="feature-list">

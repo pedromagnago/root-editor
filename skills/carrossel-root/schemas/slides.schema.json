@@ -41,7 +41,8 @@
             "raio-x",
             "dados-decidem",
             "caso-pratica",
-            "nicho-attack"
+            "nicho-attack",
+            "thread"
           ]
         },
         "tema": {
@@ -186,7 +187,8 @@
             "feature-list",
             "numbered-steps",
             "table",
-            "cta-button"
+            "cta-button",
+            "x-post"
           ]
         },
         "variante": {

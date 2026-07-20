@@ -87,6 +87,31 @@ Carrossel específico para um segmento, usando o vocabulário e as dores dele.
 
 ---
 
+## 6) A Thread (7 slides)
+
+A tese contada como uma sequência de posts, um por slide. Funciona quando a ideia **é uma cadeia de raciocínio** — cada passo depende do anterior — e o formato de timeline dá a sensação de estar lendo alguém pensando alto, não uma apresentação.
+
+Escolha este quando a espinha tem um encadeamento lógico forte (A leva a B leva a C) e a prova é de argumento, não de número. **Não escolha** quando a peça é sustentada por dados: `x-post` não tem onde colocar `data-pill` com destaque, e a estatística some no corpo do texto — nesse caso use "Dados que Decidem".
+
+| # | Papel | bg | Conteúdo | Componentes |
+|---|---|---|---|---|
+| 1 | CAPA | dark | A tese em headline curta. **Capa não renderiza componentes** — aqui é só headline, como em todo template. | — |
+| 2 | O POST DE ABERTURA | dark | A tese inteira em uma frase, como o post que abriu a thread. | `x-post` (thread) |
+| 3 | O MECANISMO | dark | Por que acontece. O passo que sustenta o resto. | `x-post` (thread) |
+| 4 | A OBJEÇÃO | alert | "Mas e quando…" — antecipa a discordância do leitor. | `x-post` (thread) |
+| 5 | A RESPOSTA | dark | Desmonta a objeção com evidência ou caso. | `x-post` (thread), `source-badge` |
+| 6 | A CONSEQUÊNCIA | gradient | O que muda para quem entendeu. Fecha a thread. | `x-post` |
+| 7 | CTA | dark | Chamada final — **fora do card**, é a marca falando, não o post. | `cta-button` |
+
+Regras próprias deste template:
+- **O card começa no slide 2.** A capa tem caminho de render próprio e ignora `componentes` — pôr `x-post` nela não desenha nada.
+- Slides 2–5 levam `thread: true`; o 6 não (encerra o fio). Os slides 1 e 7 não têm `x-post`.
+- O texto do card **é** o slide: não use `blocos` junto, senão o mesmo conteúdo aparece duas vezes.
+- Cada card em uma ideia só, e curto — texto de post não passa de 2 ou 3 linhas. Se precisou de mais, é outro slide.
+- Fundo escuro na maioria, para o card ler como timeline. O `alert` no 4 marca a virada da objeção.
+
+---
+
 ## Regras universais (qualquer framework)
 - 1 ideia por slide; no máximo 2 blocos de texto por slide.
 - Densidade decrescente: menos texto no começo.
