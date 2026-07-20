@@ -224,7 +224,13 @@ function readBrand(brand: CarouselBrandPack) {
     // #ffffff (marca clara), onde o mapeamento direto é o certo.
     // Por isso a luminância do bg declarado decide de que lado o par entra.
     ...brandTextPair(cores.bg, cores.texto, rt),
-    SCRIM: rt.SCRIM || DEFAULTS.SCRIM,
+    // Default do véu por LUMINÂNCIA do fundo da marca. Um gradiente preto de
+    // 88% só faz sentido sobre marca escura; sobre marca clara ele é o "fundo
+    // preto" que a marca não pediu. Antes o default era o gradiente escuro para
+    // todo mundo, e cabia ao intake lembrar de declarar `SCRIM: none` — frágil.
+    // Agora a marca clara já nasce sem véu; a escura mantém o de sempre (Root é
+    // escuro, então a paridade não se move). Declarar `SCRIM` explícito vence.
+    SCRIM: rt.SCRIM || (isLightHex(cores.bg) === true ? 'none' : DEFAULTS.SCRIM),
     SCRIM_IMG: rt.SCRIM_IMG || DEFAULTS.SCRIM_IMG,
     // Texto sobre os papéis `gradient`/`alert`. Existe separado de LT porque o
     // fundo desses papéis pode ser cor sólida da marca (ex.: azul #434cff), e

@@ -96,6 +96,21 @@ describe('carousel brand tokens', () => {
   });
 });
 
+describe('scrim default por luminância', () => {
+  it('marca clara nasce sem véu; marca escura mantém o gradiente preto', () => {
+    const clara = { visual_tokens: { cores: { primaria: '#7c3aed', bg: '#ffffff', texto: '#1a1a1a' } } };
+    const escura = { visual_tokens: { cores: { primaria: '#7c3aed', bg: '#0a0a0a', texto: '#f0f0f0' } } };
+    expect(carouselRootCss(clara)).toContain('--SCRIM:none');
+    expect(carouselRootCss(escura)).toContain('--SCRIM:linear-gradient');
+    // Declaração explícita vence o default de luminância.
+    const claraForcada = {
+      visual_tokens: { cores: { bg: '#ffffff' } },
+      render_tokens: { SCRIM: 'rgba(0,0,0,.5)' },
+    };
+    expect(carouselRootCss(claraForcada)).toContain('--SCRIM:rgba(0,0,0,.5)');
+  });
+});
+
 describe('carousel brand resolution', () => {
   it('resolves a user brand by slug and by the absolute path the skill writes', async () => {
     const home = makeHome();

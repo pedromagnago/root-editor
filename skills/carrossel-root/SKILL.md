@@ -58,14 +58,16 @@ Com o slug em mãos, carregue `~/.maquina-carrossel/marcas/<slug>/brand.json`.
   > 1) Marca + @ do Instagram  2) Nicho  3) Cor principal (hex ou "não sei")  4) Estilo visual (clássico / moderno / minimalista / bold)  5) CTA do último slide  6) Quantos slides (5/7/9)
   Com as respostas, **monte e salve** `~/.maquina-carrossel/marcas/<slug>/brand.json` (schema em `schemas/brand-pack.schema.json` desta skill), marque como ativa em `config.json` **e carimbe este projeto** gravando `./.marca.json` com `{"marca": "<slug>"}` — sem o carimbo, este deck volta a depender da config global, que muda quando o cliente criar o próximo carrossel. Nunca gere o deck com marca vazia.
 
-  **Grave a resposta 4 em `visual_tokens.estilo`** (`classico|moderno|minimalista|bold`) e **gere o `skin.css` da marca** ao lado do `brand.json`. Sem isso a marca fica sem assinatura visual e acaba herdando a de outra — foi assim que uma marca de BPO contábil ganhou a grade de terminal que é identidade da Root. O que o estilo decide:
+  **Grave a resposta 4 em `visual_tokens.estilo`** (`classico|moderno|minimalista|bold`), **escreva os `render_tokens` de forma correspondentes** e **gere o `skin.css` da marca** ao lado do `brand.json`. Sem isso a marca fica sem assinatura visual e acaba herdando a de outra — foi assim que uma marca de BPO contábil ganhou a grade de terminal que é identidade da Root. O que o estilo decide, e o valor a gravar em `render_tokens`:
 
-  | Estilo | Textura de fundo | `--R-CARD` | `--BAR-H` | Véu (`--SCRIM`) |
+  | Estilo | `R_CARD` | `BAR_H` | `W_HEAD` | Textura no `skin.css` |
   |---|---|---|---|---|
-  | `classico` | nenhuma | `4px` | `3px` | suave |
-  | `moderno` | gradiente sutil no acento | `12px` | `5px` | médio |
-  | `minimalista` | nenhuma | `2px` | `0` | `none` |
-  | `bold` | bloco de cor chapado | `0` | `8px` | forte |
+  | `classico` | `4px` | `3px` | `700` | nenhuma |
+  | `moderno` | `12px` | `5px` | `700` | gradiente sutil no acento |
+  | `minimalista` | `2px` | `0` | `600` | nenhuma |
+  | `bold` | `0` | `8px` | `800` | bloco de cor chapado |
+
+  **Não precisa declarar `SCRIM`:** o motor já decide pela luminância do `cores.bg` — marca clara nasce sem véu, marca escura com ele. Declare `SCRIM` só para forçar algo fora desse padrão. Preencha também `cores.texto` e `cores.bg` reais (o motor os usa).
 
   Regras da skin gerada: **use as cores do `brand.json`, nunca as de outra marca**; textura só se o estilo pedir; e escreva `.slide.capa` **depois** de `.slide.dark`, senão a regra da capa perde na cascata (as duas classes convivem no mesmo elemento). Se a marca já tem `skin.css`, não sobrescreva sem perguntar.
 
