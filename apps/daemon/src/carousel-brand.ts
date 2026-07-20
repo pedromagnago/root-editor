@@ -317,11 +317,32 @@ export async function listCarouselBrands(): Promise<CarouselBrandSummary[]> {
   );
 }
 
+// Por que um ref não virou diretório de brand pack. Códigos, nunca caminhos:
+// a regra de privacidade do log (logging/carousel.ts) proíbe path absoluto de
+// cliente, e o ref que a skill grava contém o home do usuário.
+export type BrandDegradeReason =
+  | 'brand_dir_missing' // renomeada/movida/apagada — o caso mais provável
+  | 'brand_outside_root' // ref escapou da raiz de marcas (acidente ou ataque)
+  | 'ref_not_absolute' // ref relativo: o schema documenta como válido, o daemon não aceita
+  | 'brand_json_unreadable'; // pasta existe, brand.json ausente ou corrompido
+
+interface BrandDirResult {
+  dir: string | null;
+  reason: BrandDegradeReason | null;
+}
+
 // `ref` (slug ou caminho absoluto de brand.json/pasta, como a skill grava) →
 // diretório de brand pack validado DENTRO da raiz de marcas ou do bundle.
-// null quando não resolve — o chamador decide o fallback.
-function resolveBrandDir(ref: string): string | null {
-  const tryRoots = (candidate: string): string | null => {
+// `dir: null` quando não resolve — o chamador decide o fallback e `reason`
+// diz por quê, para o log distinguir causa-raiz.
+function resolveBrandDirDiagnostic(ref: string): BrandDirResult {
+  const tryRoots = (candidate: string): BrandDirResult => {
+    let real: string;
+    try {
+      real = realpathSync(candidate);
+    } catch {
+      return { dir: null, reason: 'brand_dir_missing' };
+    }
     for (const root of [carouselBrandsDir(), BUNDLED_BRANDS_DIR]) {
       let rootReal: string;
       try {
@@ -329,29 +350,31 @@ function resolveBrandDir(ref: string): string | null {
       } catch {
         continue;
       }
-      let real: string;
-      try {
-        real = realpathSync(candidate);
-      } catch {
-        continue;
+      if (real !== rootReal && real.startsWith(rootReal + nodePath.sep)) {
+        return { dir: real, reason: null };
       }
-      if (real !== rootReal && real.startsWith(rootReal + nodePath.sep)) return real;
     }
-    return null;
+    return { dir: null, reason: 'brand_outside_root' };
   };
   const trimmed = ref.trim();
-  if (!trimmed) return null;
+  if (!trimmed) return { dir: null, reason: 'brand_dir_missing' };
   if (SLUG_RE.test(trimmed)) {
-    return (
-      tryRoots(nodePath.join(carouselBrandsDir(), trimmed)) ??
-      tryRoots(nodePath.join(BUNDLED_BRANDS_DIR, trimmed))
-    );
+    const user = tryRoots(nodePath.join(carouselBrandsDir(), trimmed));
+    if (user.dir) return user;
+    const bundled = tryRoots(nodePath.join(BUNDLED_BRANDS_DIR, trimmed));
+    if (bundled.dir) return bundled;
+    // "escapou da raiz" é mais específico (e mais grave) que "não existe".
+    return bundled.reason === 'brand_outside_root' ? bundled : user;
   }
   if (nodePath.isAbsolute(trimmed)) {
     const dir = trimmed.endsWith('brand.json') ? nodePath.dirname(trimmed) : trimmed;
     return tryRoots(dir);
   }
-  return null;
+  return { dir: null, reason: 'ref_not_absolute' };
+}
+
+function resolveBrandDir(ref: string): string | null {
+  return resolveBrandDirDiagnostic(ref).dir;
 }
 
 // Slug canônico de um ref (para carimbar no slides.json de forma portável
@@ -362,41 +385,134 @@ export function normalizeBrandRef(ref: unknown): string | null {
   return dir ? nodePath.basename(dir) : null;
 }
 
-async function composeBrandCss(brandDir: string): Promise<string | null> {
+// `skinMissing` é ortogonal ao fallback: a marca FOI aplicada, só saiu sem o
+// refinamento visual. Não muda fluxo de controle — um pack sem skin é válido,
+// e degradar aqui moveria a âncora de paridade byte a byte do pack Root.
+async function composeBrandCssDiagnostic(
+  brandDir: string,
+): Promise<{ css: string | null; skinMissing: boolean }> {
   const brand = await readBrandJson(brandDir);
-  if (!brand) return null;
+  if (!brand) return { css: null, skinMissing: false };
   const skinFile =
     typeof brand.skin === 'string' && brand.skin && !brand.skin.includes('/')
       ? brand.skin
       : 'skin.css';
   let skin = '';
+  let skinMissing = false;
   try {
     skin = await readFile(nodePath.join(brandDir, skinFile), 'utf8');
   } catch {
     // pack sem skin: só tokens — válido (a skin é refinamento visual)
+    skinMissing = true;
   }
   const base = await readFile(BASE_CSS_PATH, 'utf8');
-  return `${base}${carouselRootCss(brand)}\n/* skin da marca */\n${skin}`;
+  return {
+    css: `${base}${carouselRootCss(brand)}\n/* skin da marca */\n${skin}`,
+    skinMissing,
+  };
 }
 
 let bakedSkinCache: string | null = null;
 
+// De onde veio a marca que o deck efetivamente usou.
+export type BrandSource = 'deck_ref' | 'project_marca' | 'active' | 'root' | 'baked';
+
+// Que forma o chamador pediu. Preserva o valor diagnóstico que `requested`
+// perde ao ser omitido por privacidade: distingue "mandou um slug inexistente"
+// de "mandou um caminho que escapou da raiz".
+export type BrandRefKind = 'slug' | 'absolute_path' | 'relative_path' | 'none';
+
+export interface BrandResolution {
+  css: string;
+  source: BrandSource;
+  requestedKind: BrandRefKind;
+  /** Slug pedido. `null` quando o ref era caminho — nunca logamos path de cliente. */
+  requested: string | null;
+  /** Slug efetivamente renderizado. `null` no fallback baked. */
+  resolved: string | null;
+  /** O primeiro candidato falhou e caímos para outro. */
+  degraded: boolean;
+  reason: BrandDegradeReason | null;
+  /** A marca aplicada existe mas veio sem skin.css. Não é fallback. */
+  skinMissing: boolean;
+}
+
+function classifyBrandRef(ref: unknown): BrandRefKind {
+  if (typeof ref !== 'string' || !ref.trim()) return 'none';
+  const trimmed = ref.trim();
+  if (SLUG_RE.test(trimmed)) return 'slug';
+  return nodePath.isAbsolute(trimmed) ? 'absolute_path' : 'relative_path';
+}
+
 // CSS final do deck para um brand_pack_ref (ou ausência dele). Ordem:
-// ref do deck → marca ativa do config.json → skin Root provada (baked).
-// Falha de qualquer candidato degrada para o próximo — render nunca quebra
-// por brand pack ruim.
-export async function resolveCarouselBrandCss(ref?: string | null): Promise<string> {
-  const candidates: string[] = [];
-  if (typeof ref === 'string' && ref.trim()) candidates.push(ref);
-  const active = await activeCarouselBrandSlug();
-  if (active) candidates.push(active);
-  candidates.push('root');
-  for (const candidate of candidates) {
-    const dir = resolveBrandDir(candidate);
-    if (!dir) continue;
-    const css = await composeBrandCss(dir);
-    if (css) return css;
+// ref do deck → carimbo do projeto → marca ativa do config.json → 'root' →
+// skin Root provada (baked). Falha de qualquer candidato degrada para o
+// próximo — render nunca quebra por brand pack ruim.
+//
+// O carimbo do projeto entra DEPOIS do ref do deck de propósito: o contrato
+// gravado no deck continua vencendo (semântica "carimbo no nascimento + troca
+// explícita"); o carimbo só é um fallback mais estável que a marca ativa, que
+// é global e muda a cada criação.
+export async function resolveCarouselBrandCssDiagnostic(
+  ref?: string | null,
+  opts?: { projectMarca?: string | null },
+): Promise<BrandResolution> {
+  const candidates: Array<{ value: string; source: BrandSource }> = [];
+  if (typeof ref === 'string' && ref.trim()) candidates.push({ value: ref, source: 'deck_ref' });
+  const projectMarca = opts?.projectMarca;
+  if (typeof projectMarca === 'string' && projectMarca.trim()) {
+    candidates.push({ value: projectMarca, source: 'project_marca' });
   }
+  const active = await activeCarouselBrandSlug();
+  if (active) candidates.push({ value: active, source: 'active' });
+  candidates.push({ value: 'root', source: 'root' });
+
+  const requestedKind = classifyBrandRef(ref);
+  const requested = requestedKind === 'slug' ? String(ref).trim() : null;
+  // 'root' é sempre empilhado acima, então a lista nunca é vazia; o `??` é
+  // só para satisfazer noUncheckedIndexedAccess sem asserção.
+  const firstSource: BrandSource = candidates[0]?.source ?? 'root';
+  let firstReason: BrandDegradeReason | null = null;
+
+  for (const candidate of candidates) {
+    const { dir, reason } = resolveBrandDirDiagnostic(candidate.value);
+    if (!dir) {
+      firstReason ??= reason;
+      continue;
+    }
+    const { css, skinMissing } = await composeBrandCssDiagnostic(dir);
+    if (!css) {
+      firstReason ??= 'brand_json_unreadable';
+      continue;
+    }
+    const degraded = candidate.source !== firstSource;
+    return {
+      css,
+      source: candidate.source,
+      requestedKind,
+      requested,
+      resolved: nodePath.basename(dir),
+      degraded,
+      reason: degraded ? firstReason : null,
+      skinMissing,
+    };
+  }
+
   if (bakedSkinCache == null) bakedSkinCache = await readFile(BAKED_SKIN_PATH, 'utf8');
-  return bakedSkinCache;
+  return {
+    css: bakedSkinCache,
+    source: 'baked',
+    requestedKind,
+    requested,
+    resolved: null,
+    degraded: true,
+    reason: firstReason,
+    skinMissing: false,
+  };
+}
+
+// Assinatura e saída congeladas: é a âncora do teste de paridade byte a byte
+// do pack Root (tests/carousel-brand.test.ts).
+export async function resolveCarouselBrandCss(ref?: string | null): Promise<string> {
+  return (await resolveCarouselBrandCssDiagnostic(ref)).css;
 }

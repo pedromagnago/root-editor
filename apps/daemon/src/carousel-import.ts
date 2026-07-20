@@ -12,7 +12,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { resolveCarouselBrandCss } from './carousel-brand.js';
+import { resolveCarouselBrandCssDiagnostic, type BrandResolution } from './carousel-brand.js';
+import { logCarousel } from './logging/carousel.js';
 
 const BASE_SKIN_CSS_PATH = nodePath.resolve(
   nodePath.dirname(fileURLToPath(import.meta.url)),
@@ -385,20 +386,49 @@ export async function loadCarouselImages(
 // the project dir unless prebuilt URIs are supplied (import already read
 // them while copying). The skin honors deck.brand_pack_ref (marca do
 // cliente), degrading to the active brand and then the baked Root skin.
-// Returns the slide count.
+// Returns the slide count plus the brand diagnostic, so the caller — which is
+// the layer that owns the traceId — can log a degradation. Devolver o
+// diagnóstico (em vez de logar aqui) mantém carousel-brand.ts uma função pura,
+// sem import de logger nem traceId costurado num módulo que não conhece a
+// fronteira de request.
 export async function writeCarouselDeck(
   dir: string,
   entryFile: string,
   deck: CarouselDeck,
   imageUris?: Map<string, string>,
-): Promise<{ slides: number }> {
+  opts?: { projectMarca?: string | null },
+): Promise<{ slides: number; brand: BrandResolution }> {
   const uris = imageUris ?? (await loadCarouselImages(dir, deck));
+  const brand = await resolveCarouselBrandCssDiagnostic(deck.brand_pack_ref, {
+    projectMarca: opts?.projectMarca ?? null,
+  });
   const html = await buildCarouselDeckHtml(deck, {
     resolveImage: (ref) => uris.get(ref) ?? null,
-    css: await resolveCarouselBrandCss(deck.brand_pack_ref),
+    css: brand.css,
   });
   await writeFile(nodePath.join(dir, entryFile), html, 'utf8');
-  return { slides: deck.slides.length };
+  return { slides: deck.slides.length, brand };
+}
+
+// Emite `brand_degraded` quando a marca pedida não foi a usada, ou quando a
+// marca usada veio sem skin. Silencioso no caminho feliz — o log de marca só
+// aparece quando há algo a investigar.
+export function logBrandDegradation(
+  brand: BrandResolution,
+  ctx: { traceId: string; projectId: string },
+): void {
+  if (!brand.degraded && !brand.skinMissing) return;
+  logCarousel({
+    event: 'brand_degraded',
+    traceId: ctx.traceId,
+    projectId: ctx.projectId,
+    requestedKind: brand.requestedKind,
+    requested: brand.requested,
+    resolved: brand.resolved,
+    source: brand.source,
+    reason: brand.reason,
+    skinMissing: brand.skinMissing,
+  });
 }
 
 export function carouselArtifactJson(

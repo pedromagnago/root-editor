@@ -77,6 +77,23 @@ export type CarouselLogEvent =
       reason: 'contract';
       problems: number;
       durationMs: number;
+    }
+  // A marca pedida não pôde ser usada e o render caiu para outra. Emitido no
+  // caminho de render (import, edição e autorender), não na resolução — é lá
+  // que existe traceId. `requested` carrega SLUG, nunca caminho: o ref que a
+  // skill grava contém o home do cliente (regra de privacidade acima), e
+  // `requestedKind` preserva o que a omissão perderia.
+  | {
+      event: 'brand_degraded';
+      traceId: string;
+      projectId: string;
+      requestedKind: 'slug' | 'absolute_path' | 'relative_path' | 'none';
+      requested: string | null;
+      resolved: string | null;
+      source: 'deck_ref' | 'project_marca' | 'active' | 'root' | 'baked';
+      reason: 'brand_dir_missing' | 'brand_outside_root' | 'ref_not_absolute' | 'brand_json_unreadable' | null;
+      /** Marca aplicada porém sem skin.css — deck sai meio-marcado, plausível. */
+      skinMissing: boolean;
     };
 
 export function logCarousel(e: CarouselLogEvent): void {

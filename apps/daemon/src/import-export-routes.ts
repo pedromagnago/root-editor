@@ -25,6 +25,7 @@ import {
   CarouselContractError,
   carouselArtifactJson,
   imageDataUri,
+  logBrandDegradation,
   parseCarouselSlides,
   resolveInside,
   writeCarouselDeck,
@@ -407,7 +408,8 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         typeof name === 'string' && name.trim()
           ? name.trim()
           : deck.meta.tema?.trim() || path.basename(normalizedPath);
-      await writeCarouselDeck(dir, entryFile, deck, imageUris);
+      const imported = await writeCarouselDeck(dir, entryFile, deck, imageUris);
+      logBrandDegradation(imported.brand, { traceId, projectId: id });
       await fs.promises.writeFile(
         path.join(dir, `${entryFile}.artifact.json`),
         JSON.stringify(carouselArtifactJson(projectName, entryFile, new Date(now).toISOString()), null, 2),
@@ -548,7 +550,8 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         'utf8',
       );
       carouselAutoRender?.noteRendered(req.params.id, storedSlides);
-      await writeCarouselDeck(carousel.dir, carousel.entryFile, deck);
+      const edited = await writeCarouselDeck(carousel.dir, carousel.entryFile, deck);
+      logBrandDegradation(edited.brand, { traceId, projectId: req.params.id });
       logCarousel({
         event: 'edit_succeeded',
         traceId,
