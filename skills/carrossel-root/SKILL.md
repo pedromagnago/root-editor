@@ -2,10 +2,16 @@
 name: carrossel-root
 emoji: "▸"
 description: "Máquina de Carrossel da Root: cria um carrossel de Instagram do insumo ao deck editável, numa conversa guiada (triagem → headlines → espinha → texto → deck). O editor assume o render."
-category: slides
-scenario: marketing
 od:
   mode: deck
+  category: slides
+  scenario: marketing
+  # A identidade visual do carrossel vem do brand pack da marca (tokens + skin
+  # compostos no render), não de um design system. Sem isso o default é `true`
+  # e o app anuncia que esta skill precisa de um DESIGN.md autoritativo — que
+  # entraria em contradição com o brand pack no mesmo run.
+  design_system:
+    requires: false
 triggers:
   - "carrossel"
   - "carousel"
