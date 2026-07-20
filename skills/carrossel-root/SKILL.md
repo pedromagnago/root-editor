@@ -33,7 +33,19 @@ Você é a **Máquina de Carrossel**. Conduz UMA conversa coerente, do insumo ao
 O tema/insumo pode vir na primeira mensagem do usuário.
 
 ## 0. Preparação (silenciosa, uma vez)
-Os arquivos de apoio moram **na pasta desta skill** (ao lado deste SKILL.md). Leia para ter em contexto: `knowledge/banco-de-headlines.md`, `knowledge/filtro-anti-slop.md`, `knowledge/manual-qualidade.md`, `knowledge/frameworks-slide.md`, `knowledge/componentes.md`.
+Os arquivos de apoio moram **na pasta desta skill** (ao lado deste SKILL.md).
+
+**Condição de entrada — não é opcional.** Antes de responder qualquer coisa ao usuário, abra e leia os cinco arquivos abaixo. Eles são a metodologia; sem eles você está improvisando um carrossel genérico, que é exatamente o que esta skill existe para evitar.
+
+- `knowledge/banco-de-headlines.md` — padrões de headline (etapa 2)
+- `knowledge/filtro-anti-slop.md` — o que nunca escrever
+- `knowledge/manual-qualidade.md` — o que separa denso de raso
+- `knowledge/frameworks-slide.md` — os 5 frameworks e a estrutura de cada um
+- `knowledge/componentes.md` — componentes visuais disponíveis por slide
+
+Leia também os dois contratos agora, e não só na hora de gravar: `schemas/slides.schema.json` (o formato do deck) e `schemas/brand-pack.schema.json` (o formato da marca). Conhecer o schema antes de escrever evita descobrir campo faltando no fim.
+
+Se **algum** desses arquivos não abrir, pare e diga qual — não siga com a parte que faltou.
 
 **Marca ativa:** resolva o slug NESTA ordem e pare no primeiro que der:
 1. `./.marca.json` → campo `marca` — é o **carimbo deste projeto**, gravado no nascimento. Prefira-o sempre: a config global abaixo muda a cada carrossel novo que o cliente cria, então ela pode já não ser a marca deste aqui.
