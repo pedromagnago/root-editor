@@ -153,7 +153,7 @@ interface Props {
   onImportCarousel?: (baseDir: string) => Promise<void> | void;
   // One-click "new carousel": creates a project driven by the carrossel-root
   // skill and drops the user in the chat to describe the theme.
-  onCreateCarousel?: (theme?: string) => Promise<void> | void;
+  onCreateCarousel?: (theme?: string, marca?: string) => Promise<void> | void;
   // Host flow: the desktop main process owns the picker dialog and
   // the import call atomically (`pickAndImport` IPC). The renderer
   // never sees the path or the HMAC token; it only receives the
@@ -842,7 +842,10 @@ export function NewProjectPanel({
     if (!onCreateCarousel || carouselCreating) return;
     setCarouselCreating(true);
     try {
-      await onCreateCarousel();
+      // A marca escolhida no seletor acima já está em mãos aqui — mandá-la
+      // carimba o projeto no nascimento em vez de deixá-lo à mercê da config
+      // global no instante em que o agente rodar.
+      await onCreateCarousel(undefined, activeCarouselBrand || undefined);
     } finally {
       setCarouselCreating(false);
     }

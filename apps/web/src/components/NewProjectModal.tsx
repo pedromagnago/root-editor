@@ -45,7 +45,7 @@ interface Props {
   ) => Promise<ImportClaudeDesignOutcome | void> | ImportClaudeDesignOutcome | void;
   onImportFolder?: (baseDir: string) => Promise<void> | void;
   onImportCarousel?: (baseDir: string) => Promise<void> | void;
-  onCreateCarousel?: (theme?: string) => Promise<void> | void;
+  onCreateCarousel?: (theme?: string, marca?: string) => Promise<void> | void;
   onImportFolderResponse?: (response: OpenDesignHostProjectImportSuccess) => Promise<void> | void;
   onOpenConnectorsTab?: () => void;
   onClose: () => void;

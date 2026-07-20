@@ -27,12 +27,16 @@ O tema/insumo pode vir na primeira mensagem do usuário.
 ## 0. Preparação (silenciosa, uma vez)
 Os arquivos de apoio moram **na pasta desta skill** (ao lado deste SKILL.md). Leia para ter em contexto: `knowledge/banco-de-headlines.md`, `knowledge/filtro-anti-slop.md`, `knowledge/manual-qualidade.md`, `knowledge/frameworks-slide.md`, `knowledge/componentes.md`.
 
-**Marca ativa:** leia `~/.maquina-carrossel/config.json` → `marca_ativa` e carregue `~/.maquina-carrossel/marcas/<slug>/brand.json`.
+**Marca ativa:** resolva o slug NESTA ordem e pare no primeiro que der:
+1. `./.marca.json` → campo `marca` — é o **carimbo deste projeto**, gravado no nascimento. Prefira-o sempre: a config global abaixo muda a cada carrossel novo que o cliente cria, então ela pode já não ser a marca deste aqui.
+2. `~/.maquina-carrossel/config.json` → `marca_ativa` (projetos antigos, sem carimbo).
+
+Com o slug em mãos, carregue `~/.maquina-carrossel/marcas/<slug>/brand.json`.
 - Se houver marca com paleta/voz reais → use-a (paleta, fontes, voz, `rules`, ICP, `skin`).
 - Se **não houver marca, ou ela estiver vazia/fraca** (sem `visual_tokens.cores.primaria` real, sem voz) → **faça o intake rápido inline** (não mande rodar outro comando): pergunte numa tacada só, curtinho:
   > Antes de criar, 6 coisas rápidas:
   > 1) Marca + @ do Instagram  2) Nicho  3) Cor principal (hex ou "não sei")  4) Estilo visual (clássico / moderno / minimalista / bold)  5) CTA do último slide  6) Quantos slides (5/7/9)
-  Com as respostas, **monte e salve** `~/.maquina-carrossel/marcas/<slug>/brand.json` (schema em `schemas/brand-pack.schema.json` desta skill) e marque como ativa em `config.json`. Nunca gere o deck com marca vazia.
+  Com as respostas, **monte e salve** `~/.maquina-carrossel/marcas/<slug>/brand.json` (schema em `schemas/brand-pack.schema.json` desta skill), marque como ativa em `config.json` **e carimbe este projeto** gravando `./.marca.json` com `{"marca": "<slug>"}` — sem o carimbo, este deck volta a depender da config global, que muda quando o cliente criar o próximo carrossel. Nunca gere o deck com marca vazia.
 
 **Modo:** se o usuário pedir "auto" (ou `--auto`), avance os gates sozinho (escolha a headline de maior tensão e o framework coerente, justifique em 1 linha) e entregue com 1 confirmação. Sem isso = **guiado** (gates abaixo).
 

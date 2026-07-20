@@ -1751,8 +1751,10 @@ function AppInner() {
     });
   }, [rememberLocalProject]);
 
-  const handleCreateCarousel = useCallback(async (theme?: string) => {
-    const result = await createCarouselProject(theme);
+  const handleCreateCarousel = useCallback(async (theme?: string, marca?: string) => {
+    // `marca` só vem do painel, que tem o seletor. O caminho do chip da home
+    // não conhece marca e omite — nesse caso o daemon carimba com a ativa.
+    const result = await createCarouselProject(theme, marca);
     rememberLocalProject(result.project.id);
     setProjects((curr) => [result.project, ...curr.filter((p) => p.id !== result.project.id)]);
     // When a theme was given, auto-send it as the first message so the

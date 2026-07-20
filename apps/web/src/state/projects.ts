@@ -424,13 +424,21 @@ export interface CreateCarouselResponse {
 // Creates a fresh carousel project driven by the carrossel-root skill.
 // The theme is optional — the skill asks for the insumo on its first turn
 // when none is supplied.
+// `marca` carimba o projeto na criação. Omitir não é neutro: o daemon carimba
+// com a marca ativa do momento, mas quem escolhe explicitamente no seletor tem
+// a escolha honrada sem depender de a global ainda estar nesse valor quando o
+// agente rodar.
 export async function createCarouselProject(
   theme?: string,
+  marca?: string,
 ): Promise<CreateCarouselResponse> {
+  const body: Record<string, string> = {};
+  if (theme && theme.trim()) body.theme = theme.trim();
+  if (marca && marca.trim()) body.marca = marca.trim();
   const resp = await fetch('/api/projects/carousel', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(theme && theme.trim() ? { theme: theme.trim() } : {}),
+    body: JSON.stringify(body),
   });
   if (!resp.ok) {
     let message = 'Failed to create carousel';

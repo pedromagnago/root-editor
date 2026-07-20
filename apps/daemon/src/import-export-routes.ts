@@ -35,6 +35,7 @@ import {
   listCarouselBrands,
   normalizeBrandRef,
   setActiveCarouselBrand,
+  writeProjectBrandStamp,
 } from './carousel-brand.js';
 import { logCarousel } from './logging/carousel.js';
 import { CARROSSEL_SKILL_ID, isCarouselProject, type CarouselAutoRender } from './carousel-autorender.js';
@@ -195,6 +196,14 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         // fluxo de criação É trocar a ativa (mesma semântica da V02).
         await setActiveCarouselBrand(marca);
       }
+      // Carimbo no nascimento. Sem ele, a marca do projeto é só "o que a
+      // config global disser NA HORA em que o agente rodar" — e a global muda
+      // a cada criação (linha acima). Criar A com Root, criar B com FullBPO e
+      // só então rodar o agente de A produzia texto de A com a voz de B.
+      // Falha determinística, não corrida rara.
+      const stampedMarca =
+        (typeof marca === 'string' && marca.trim() ? marca.trim() : null) ??
+        (await activeCarouselBrandSlug());
       const id = randomId();
       const now = Date.now();
       const trimmedTheme = typeof theme === 'string' ? theme.trim() : '';
@@ -214,10 +223,18 @@ export function registerImportRoutes(app: Express, ctx: RegisterImportRoutesDeps
         // (prototype -> example-web-prototype, deck -> example-simple-deck, …)
         // whose onboarding flow would run INSTEAD of the carrossel-root skill.
         // Omitting kind resolves to no scenario plugin, so only the skill runs.
-        metadata: marca ? { carousel: true, marca } : { carousel: true },
+        metadata: stampedMarca ? { carousel: true, marca: stampedMarca } : { carousel: true },
         createdAt: now,
         updatedAt: now,
       });
+      // O carimbo também vai para o disco, no cwd do agente: o daemon resolve
+      // a marca no render, mas quem escolhe VOZ, ICP, `rules` e personas é o
+      // agente, e ele lê do filesystem. Sem este arquivo o carimbo corrigiria
+      // a cor e deixaria o texto errado. Dotfile para não poluir a árvore do
+      // projeto (mesma convenção de `.file-versions`).
+      if (stampedMarca) {
+        await writeProjectBrandStamp(projectDir(PROJECTS_DIR, id), stampedMarca);
+      }
       const cid = randomId();
       insertConversation(db, {
         id: cid,

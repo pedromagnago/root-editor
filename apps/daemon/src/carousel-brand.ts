@@ -282,6 +282,39 @@ export async function setActiveCarouselBrand(slug: string): Promise<void> {
   );
 }
 
+// Carimbo de marca do projeto, gravado no cwd do agente na criação.
+//
+// Por que um arquivo e não só a coluna `metadata` do projeto: quem escolhe voz,
+// ICP, `rules` e personas é o AGENTE, e ele só enxerga o filesystem — o banco
+// do daemon não existe para ele. `metadata.marca` corrige o render (cor); este
+// arquivo corrige a autoria (texto). Sem os dois, um deck sai com a cor de uma
+// marca e a voz de outra.
+//
+// Dotfile de propósito: o listador de arquivos do projeto pula entradas que
+// começam com ponto, então o carimbo não polui a árvore que o cliente vê
+// (mesma convenção de `.file-versions`).
+export const PROJECT_BRAND_STAMP_FILE = '.marca.json';
+
+export async function writeProjectBrandStamp(projectDir: string, slug: string): Promise<void> {
+  if (!SLUG_RE.test(slug)) throw new Error(`invalid brand slug: ${slug}`);
+  await mkdir(projectDir, { recursive: true });
+  await writeFile(
+    nodePath.join(projectDir, PROJECT_BRAND_STAMP_FILE),
+    JSON.stringify({ marca: slug }, null, 2) + '\n',
+    'utf8',
+  );
+}
+
+export async function readProjectBrandStamp(projectDir: string): Promise<string | null> {
+  try {
+    const raw = await readFile(nodePath.join(projectDir, PROJECT_BRAND_STAMP_FILE), 'utf8');
+    const slug = JSON.parse(raw)?.marca;
+    return typeof slug === 'string' && SLUG_RE.test(slug) ? slug : null;
+  } catch {
+    return null;
+  }
+}
+
 // Lista marcas do usuário (marcas/) + bundled (root), dedup por slug — a do
 // usuário ganha (ela pode ter evoluído a skin da Root local).
 export async function listCarouselBrands(): Promise<CarouselBrandSummary[]> {

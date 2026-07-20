@@ -367,6 +367,102 @@ describe('POST /api/import/carousel', () => {
     expect(body.project.name).toBe('Novo carrossel');
   });
 
+  // Carimbo no nascimento: sem ele a marca do projeto é "o que a config global
+  // disser NA HORA em que o agente rodar" — e a global muda a cada criação.
+  describe('carimbo de marca na criação', () => {
+    async function makeHomeWithBrand(slug: string): Promise<string> {
+      const home = makePieceDir();
+      process.env.MAQUINA_CARROSSEL_HOME = home;
+      const brandDir = path.join(home, 'marcas', slug);
+      await mkdir(brandDir, { recursive: true });
+      await writeFile(
+        path.join(brandDir, 'brand.json'),
+        JSON.stringify({
+          $schema: 'brandpack/v1',
+          slug,
+          nome: slug.toUpperCase(),
+          handle: `@${slug}`,
+          visual_tokens: { cores: { primaria: '#0057FF' } },
+        }),
+        'utf8',
+      );
+      return home;
+    }
+
+    async function createCarousel(payload: Record<string, unknown>) {
+      const resp = await fetch(`${baseUrl}/api/projects/carousel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      return { resp, body: (await resp.json()) as any };
+    }
+
+    async function readStamp(projectId: string): Promise<string | null> {
+      try {
+        const raw = await readFile(path.join(materializedDir(projectId), '.marca.json'), 'utf8');
+        return JSON.parse(raw).marca;
+      } catch {
+        return null;
+      }
+    }
+
+    it('carimba a marca escolhida no metadata e no disco', async () => {
+      await makeHomeWithBrand('acme');
+      try {
+        const { resp, body } = await createCarousel({ theme: 'Tema', marca: 'acme' });
+        expect(resp.status).toBe(200);
+        expect(body.project.metadata.marca).toBe('acme');
+        // O arquivo é o que o AGENTE lê — sem ele o texto sai com a voz errada.
+        expect(await readStamp(body.project.id)).toBe('acme');
+      } finally {
+        delete process.env.MAQUINA_CARROSSEL_HOME;
+      }
+    });
+
+    it('carimba a marca ativa quando o cliente não manda marca', async () => {
+      const home = await makeHomeWithBrand('acme');
+      try {
+        await writeFile(
+          path.join(home, 'config.json'),
+          JSON.stringify({ marca_ativa: 'acme' }),
+          'utf8',
+        );
+        // Caminho do chip da home, que não conhece marca: o daemon carimba.
+        const { resp, body } = await createCarousel({ theme: 'Tema' });
+        expect(resp.status).toBe(200);
+        expect(body.project.metadata.marca).toBe('acme');
+        expect(await readStamp(body.project.id)).toBe('acme');
+      } finally {
+        delete process.env.MAQUINA_CARROSSEL_HOME;
+      }
+    });
+
+    it('cria o projeto normalmente quando não há marca nenhuma', async () => {
+      // Home vazio: instalação nova. Criar carrossel nunca pode falhar por
+      // problema de marca — o render cai no Root e a skill faz o intake.
+      process.env.MAQUINA_CARROSSEL_HOME = makePieceDir();
+      try {
+        const { resp, body } = await createCarousel({ theme: 'Tema' });
+        expect(resp.status).toBe(200);
+        expect(body.project.metadata.marca).toBeUndefined();
+        expect(await readStamp(body.project.id)).toBeNull();
+      } finally {
+        delete process.env.MAQUINA_CARROSSEL_HOME;
+      }
+    });
+
+    it('recusa marca inexistente sem criar projeto', async () => {
+      await makeHomeWithBrand('acme');
+      try {
+        const { resp } = await createCarousel({ theme: 'Tema', marca: 'nao-existe' });
+        expect(resp.status).toBe(404);
+      } finally {
+        delete process.env.MAQUINA_CARROSSEL_HOME;
+      }
+    });
+  });
+
   it('PUT /carousel refuses image refs escaping the project dir', async () => {
     const projectId = await importValidPiece();
     const got = await fetch(`${baseUrl}/api/projects/${projectId}/carousel`);
