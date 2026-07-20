@@ -167,6 +167,30 @@
                 "null"
               ],
               "description": "caminho do arquivo de imagem (embutido em base64)"
+            },
+            "sugestao": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Sugestao de imagem para ESTE slide, produzida na criacao. Ortogonal a `tipo`: um slide com tipo=none e sugestao preenchida e 'sugerido, nao gerado' — o render nao muda. Existe para o usuario decidir depois se gera, sem perder o raciocinio de por que aquela imagem serve a este slide.",
+              "properties": {
+                "cena": {
+                  "type": "string",
+                  "description": "O que aparece na imagem, em uma frase concreta. Nao e o prompt final: o daemon carimba direcao de marca, negativos e formato por cima."
+                },
+                "racional": {
+                  "type": "string",
+                  "description": "Por que esta cena serve ao PAPEL deste slide no template escolhido. Uma linha."
+                },
+                "origem": {
+                  "type": "string",
+                  "enum": [
+                    "ia",
+                    "acervo",
+                    "foto-propria"
+                  ],
+                  "description": "De onde a imagem deveria vir. `acervo`/`foto-propria` sinalizam que gerar por IA nao e o certo aqui."
+                }
+              }
             }
           }
         }

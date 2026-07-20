@@ -107,7 +107,10 @@ describe('carousel auto-render service', () => {
     const html = await readFile(path.join(dir, 'deck.html'), 'utf8');
     expect(html).toContain('Headline auto-render');
     expect(html).toContain('<em>viva</em>');
-    expect(html.match(/class="slide /g)?.length).toBe(4);
+    // Conta no CORPO, não no arquivo: o deck inclui o CSS da marca ativa
+    // inline, e um comentário de skin pode conter markup de exemplo.
+    const body = html.split('</style>').pop() ?? '';
+    expect(body.match(/class="slide /g)?.length).toBe(4);
   });
 
   it('bootstraps a chat-created project on first slides.json write', async () => {

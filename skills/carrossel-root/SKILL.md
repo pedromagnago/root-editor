@@ -133,7 +133,15 @@ O template escolhido define a estrutura **e** o nº de slides. Se o intake da ma
 
 Escreva o **texto de cada slide** seguindo a densidade do `manual-qualidade.md`: **no máximo 2 blocos por slide** (bloco 1 contextualiza, bloco 2 aprofunda/contradiz), específico, com dado+fonte+ano onde houver número, **sem 2ª pessoa**, capa com headline curta (6–8 palavras) e o destaque em `<em>`, último slide com CTA único e diretivo. Mostre o texto numerado por slide e feche com `Revisa. Quando estiver ok, digito o visual. (ok / ajustar slide N)`. Pare.
 
-**Etapa 6 — Imagens (pergunte SEMPRE, é obrigatório).** Depois do texto aprovado, antes de gerar o deck, pergunte:
+**Etapa 6 — Imagens (pergunte SEMPRE, é obrigatório).** Depois do texto aprovado, antes de gerar o deck:
+
+**Primeiro sugira, depois pergunte.** Percorra os slides e, para os que ganhariam com imagem, escreva no `slides.json` a sugestão em `imagem.sugestao`: `cena` (o que aparece, uma frase concreta), `racional` (por que essa cena serve ao **papel** deste slide no template escolhido — não "ilustra o tema") e `origem` (`ia` | `acervo` | `foto-propria`). Nem todo slide quer imagem: um slide de dado costuma ficar melhor com o número respirando.
+
+A sugestão **não é o prompt final** — o daemon carimba direção de marca, negativos e formato por cima. Escreva a cena, não o prompt.
+
+Marque `origem: "acervo"` ou `"foto-propria"` quando gerar por IA for errado: rosto de pessoa real, produto do cliente, print de tela, logo de terceiro. Nesses casos a IA inventaria algo que não existe.
+
+Mostre as sugestões numeradas por slide e então pergunte:
 ```
 Quer imagem em algum slide? Arrasta o arquivo aqui (ou cola o caminho) dizendo o slide — ex.: "capa" ou "slide 3". Pode mandar mais de uma. Ou responde "sem imagem".
 ```

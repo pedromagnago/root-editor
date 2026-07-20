@@ -113,7 +113,9 @@ describe('POST /api/import/carousel', () => {
 
     const dir = materializedDir(body.project.id);
     const html = await readFile(path.join(dir, 'deck.html'), 'utf8');
-    expect(html.match(/class="slide /g)?.length).toBe(4);
+    // Conta no CORPO — o CSS inline da marca ativa não deve entrar na conta.
+    const rendered = html.split('</style>').pop() ?? '';
+    expect(rendered.match(/class="slide /g)?.length).toBe(4);
     // Image embedded as base64, copied into the self-contained project.
     expect(html).toContain('data:image/png;base64,');
     const copiedImage = await readFile(path.join(dir, 'assets', 'img.png'));

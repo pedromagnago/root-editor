@@ -81,7 +81,12 @@ export interface CarouselSlide {
   componentes?: CarouselComponent[];
   source?: string;
   cta?: { instrucao?: string; palavra?: string; beneficio?: string } | null;
-  imagem?: { tipo?: string; ref?: string | null };
+  imagem?: {
+    tipo?: string;
+    ref?: string | null;
+    /** Sugestão de imagem para este slide. Ortogonal a `tipo`: não afeta o render. */
+    sugestao?: { cena?: string; racional?: string; origem?: string };
+  };
 }
 
 export interface CarouselDeck {
