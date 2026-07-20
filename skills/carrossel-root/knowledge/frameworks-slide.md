@@ -112,6 +112,21 @@ Regras próprias deste template:
 
 ---
 
+## O que `bg` significa (e por que a marca pode mudar)
+
+A coluna `bg` das tabelas acima descreve um **papel narrativo**, não uma cor. O que cada papel *parece* é decisão da marca, via brand pack:
+
+| `bg` | Papel na narrativa | O que a marca controla |
+|---|---|---|
+| `light` | respiro, leitura calma, dado que precisa de clareza | `LB` (fundo), `DT` (texto) |
+| `dark` | peso, virada, o que precisa de gravidade | `DB`, `LT` |
+| `gradient` | destaque — o slide que sustenta a peça | `G`, `FG_G`, `SCRIM` |
+| `alert` | tensão — a contradição, o dado incômodo | `G_ALERT`, `FG_ALERT`, `SCRIM` |
+
+**As tabelas trazem uma sugestão de sequência, não uma ordem imutável.** Se a marca é de fundo claro (`visual_tokens.cores.bg` claro, ou `visual_tokens.estilo` = `minimalista`/`classico`), prefira `light` onde a tabela pede `dark`, **desde que preserve a alternância** — nunca 3 slides seguidos iguais, e a virada continua contrastando com o que veio antes. O papel é o que não muda: um slide de virada segue sendo virada, mesmo claro.
+
+Isso existe porque as tabelas foram escritas para uma marca escura. Aplicadas ao pé da letra numa marca de canvas branco, entregam um carrossel que não parece dela.
+
 ## Regras universais (qualquer framework)
 - 1 ideia por slide; no máximo 2 blocos de texto por slide.
 - Densidade decrescente: menos texto no começo.

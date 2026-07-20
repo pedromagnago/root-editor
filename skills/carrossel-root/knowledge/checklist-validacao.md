@@ -28,6 +28,7 @@ Sem este bloco, a peça sai na voz desta skill — que é a voz da Root — em v
 
 ## Bloco B — Visual (validador-visual, olhando o preview)
 - [ ] Alternância de fundos clara; **nunca 3 slides iguais** consecutivos.
+- [ ] Os fundos combinam com a marca: marca de canvas claro não entrega deck majoritariamente escuro. O papel de cada slide foi preservado, a cor foi adaptada.
 - [ ] Progress bar avança corretamente; **último slide em 100% e SEM seta** de swipe.
 - [ ] Watermark/handle da marca em todos os slides.
 - [ ] Número de impacto visível e grande (42–60px no design), não enterrado no corpo.

@@ -119,7 +119,7 @@ Escolhe 1–6, ou "ok" para o recomendado.
 ```
 O template escolhido define a estrutura **e** o nº de slides. Se o intake da marca pediu outra contagem, o template manda na estrutura e você ajusta o miolo (repetir ou fundir slides de método/prova) — **nunca** mexa na capa nem no fechamento. Feche o gate e pare.
 
-**Etapa 5 — Texto final dos slides.** Siga a tabela do template escolhido na Etapa 4 (papel, `bg` e componentes por slide já vêm de lá — não reinvente a estrutura).
+**Etapa 5 — Texto final dos slides.** Siga a tabela do template escolhido na Etapa 4: papel e componentes por slide vêm de lá — **não reinvente a estrutura**. O `bg`, porém, é papel narrativo, não cor: se a marca for clara (`cores.bg` claro ou `estilo` minimalista/clássico), adapte conforme a seção "O que `bg` significa" de `frameworks-slide.md`, preservando a alternância. Uma tabela escrita para marca escura aplicada ao pé da letra numa marca de canvas branco entrega um carrossel que não parece dela.
 
 **Antes de escrever a primeira frase, releia o brand pack.** Sem isto o texto sai na voz genérica desta skill — que é a voz da Root — e não na voz do cliente. Os campos abaixo existem no `brand.json` justamente para isso:
 
