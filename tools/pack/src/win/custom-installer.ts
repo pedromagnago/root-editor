@@ -483,16 +483,12 @@ Page custom RunningInstancesPage RunningInstancesPageLeave
 !insertmacro MUI_PAGE_INSTFILES
 !define MUI_FINISHPAGE_RUN "$INSTDIR\\${exeName}"
 !define MUI_FINISHPAGE_RUN_TEXT "$(LaunchApp)"
-!define MUI_FINISHPAGE_SHOWREADME
-!define MUI_FINISHPAGE_SHOWREADME_TEXT "$(CreateDesktopShortcut)"
-!define MUI_FINISHPAGE_SHOWREADME_FUNCTION CreateDesktopShortcut
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
 UninstPage custom un.UninstallOptionsPage un.UninstallOptionsPageLeave
 !insertmacro MUI_UNPAGE_INSTFILES
 ${createNsisLanguageInserts()}
 
-${createNsisLangString("CreateDesktopShortcut", "Create desktop shortcut", { LANG_SIMPCHINESE: "创建桌面快捷方式" })}
 ${createNsisLangString("LaunchApp", `Launch ${productName}`, { LANG_SIMPCHINESE: `启动 ${productName}` })}
 ${createNsisLangString("RemoveDesktopShortcut", "Remove desktop shortcut", { LANG_SIMPCHINESE: "删除桌面快捷方式" })}
 ${createNsisLangString("RemoveCacheData", "Delete downloaded update and cache files", { LANG_SIMPCHINESE: "删除已下载的更新和缓存文件" })}
@@ -808,14 +804,6 @@ cancel_install:
 done:
 FunctionEnd
 
-Function CreateDesktopShortcut
-  SetShellVarContext current
-  SetOutPath "$INSTDIR"
-  !insertmacro LOG_PATH_STATE "desktop_shortcut_before_create" "$DESKTOP\\${shortcutName}"
-  CreateShortCut "$DESKTOP\\${shortcutName}" "$INSTDIR\\${exeName}" "" "$INSTDIR\\${exeName}" 0
-  !insertmacro LOG_PATH_STATE "desktop_shortcut_after_create" "$DESKTOP\\${shortcutName}"
-FunctionEnd
-
 Function RemoveInstallDir
   !insertmacro LOG_PATH_STATE "install_dir_before_remove" "$INSTDIR"
   Push $0
@@ -966,11 +954,12 @@ prepare_install_dir:
   WriteUninstaller "$INSTDIR\\${uninstallerName}"
   !insertmacro LOG_PATH_STATE "uninstaller_after_write" "$INSTDIR\\${uninstallerName}"
   SetOutPath "$INSTDIR"
-  IfSilent 0 skip_silent_desktop_shortcut
+  ; Always create the desktop shortcut (silent and interactive installs alike) so
+  ; the app reliably lands on the user's Desktop, instead of relying on the
+  ; optional finish-page checkbox that an interactive user could uncheck.
   !insertmacro LOG_PATH_STATE "desktop_shortcut_before_create" "$DESKTOP\\${shortcutName}"
   CreateShortCut "$DESKTOP\\${shortcutName}" "$INSTDIR\\${exeName}" "" "$INSTDIR\\${exeName}" 0
   !insertmacro LOG_PATH_STATE "desktop_shortcut_after_create" "$DESKTOP\\${shortcutName}"
-skip_silent_desktop_shortcut:
   !insertmacro LOG_PATH_STATE "start_menu_shortcut_before_create" "$SMPROGRAMS\\${shortcutName}"
   CreateShortCut "$SMPROGRAMS\\${shortcutName}" "$INSTDIR\\${exeName}" "" "$INSTDIR\\${exeName}" 0
   !insertmacro LOG_PATH_STATE "start_menu_shortcut_after_create" "$SMPROGRAMS\\${shortcutName}"
