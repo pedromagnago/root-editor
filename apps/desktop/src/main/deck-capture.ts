@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { BrowserWindow, nativeImage } from "electron";
 import type { DesktopRenderSlidesInput, DesktopRenderSlidesResult } from "@open-design/sidecar-proto";
 
+import { loadHtmlDocumentIntoWindow } from "./load-html.js";
 import { waitForPrintableContent } from "./pdf-export.js";
 
 // Vendored dom-to-pptx browser UMD (apps/desktop/vendor/dom-to-pptx). Loaded
@@ -160,7 +161,7 @@ export async function renderDeckSlides(
 
   try {
     const doc = injectBaseHref(input.html, input.baseHref);
-    await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(doc)}`);
+    await loadHtmlDocumentIntoWindow(window, doc);
     tLoad = Date.now();
     await waitForPrintableContent(window);
     tAssets = Date.now();

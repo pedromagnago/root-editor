@@ -3,6 +3,8 @@ import { writeFile } from "node:fs/promises";
 import { BrowserWindow, dialog } from "electron";
 import type { DesktopExportPdfInput, DesktopExportPdfResult } from "@open-design/sidecar-proto";
 
+import { loadHtmlDocumentIntoWindow } from "./load-html.js";
+
 export type PageSize = { height: number; width: number };
 
 export const DECK_PAGE_SIZE: PageSize = { width: 13.333333, height: 7.5 };
@@ -83,7 +85,7 @@ export async function exportPdfFromHtml(input: DesktopExportPdfInput): Promise<D
   });
 
   try {
-    await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(buildPrintableDocument(input))}`);
+    await loadHtmlDocumentIntoWindow(window, buildPrintableDocument(input));
     await waitForPrintableContent(window);
     if (input.deck) await unhideDeckSlidesForPrint(window);
     const pageSize = input.deck ? DECK_PAGE_SIZE : await inferPageSize(window);
@@ -212,7 +214,7 @@ export function createElectronPdfTarget(): PrintReadyPdfTarget {
       window = printWindow;
       printWindow.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
       printWindow.webContents.on("will-navigate", (event) => event.preventDefault());
-      await printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      await loadHtmlDocumentIntoWindow(printWindow, html);
     },
     async waitUntilReady(nonce) {
       if (!window) throw new Error("PDF render window has not been loaded");

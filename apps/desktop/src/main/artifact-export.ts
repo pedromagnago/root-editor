@@ -8,6 +8,7 @@ import type {
   DesktopExportArtifactResult,
 } from "@open-design/sidecar-proto";
 
+import { loadHtmlDocumentIntoWindow } from "./load-html.js";
 import { DECK_PAGE_SIZE, DECK_PRINT_CSS, inferPageSize, waitForPrintableContent } from "./pdf-export.js";
 
 // Headless programmatic exporter for the `od export` CLI (PDF / image).
@@ -35,7 +36,7 @@ export async function exportArtifact(
   try {
     window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
     window.webContents.on("will-navigate", (event) => event.preventDefault());
-    await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(buildDocument(input))}`);
+    await loadHtmlDocumentIntoWindow(window, buildDocument(input));
     await waitForPrintableContent(window);
 
     if (input.format === "pdf") return await renderPdf(window, input);
