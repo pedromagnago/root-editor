@@ -434,6 +434,7 @@ describe('bootstrap route regressions', () => {
       surface: 'web' as const,
       source: 'built-in' as const,
       craftRequires: [],
+      configFields: [],
       platform: null,
       scenario: '',
       category: null,

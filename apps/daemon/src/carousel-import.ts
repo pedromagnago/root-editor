@@ -13,6 +13,7 @@ import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { resolveCarouselBrandCssDiagnostic, type BrandResolution } from './carousel-brand.js';
+import { isPathAtOrInside } from './carousel-paths.js';
 import { logCarousel } from './logging/carousel.js';
 
 const BASE_SKIN_CSS_PATH = nodePath.resolve(
@@ -389,7 +390,7 @@ export async function buildCarouselDeckHtml(
 // slides.json must not read arbitrary paths.
 export function resolveInside(rootDir: string, ref: string): string | null {
   const resolved = nodePath.resolve(rootDir, ref);
-  if (resolved !== rootDir && !resolved.startsWith(rootDir + nodePath.sep)) {
+  if (!isPathAtOrInside(rootDir, resolved)) {
     return null;
   }
   return resolved;

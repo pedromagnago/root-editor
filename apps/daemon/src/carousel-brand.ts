@@ -21,6 +21,8 @@ import { homedir } from 'node:os';
 import nodePath from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { isPathInside } from './carousel-paths.js';
+
 const ASSETS_DIR = nodePath.resolve(
   nodePath.dirname(fileURLToPath(import.meta.url)),
   '../assets/carousel',
@@ -488,7 +490,7 @@ function resolveBrandDirDiagnostic(ref: string): BrandDirResult {
       } catch {
         continue;
       }
-      if (real !== rootReal && real.startsWith(rootReal + nodePath.sep)) {
+      if (isPathInside(rootReal, real)) {
         return { dir: real, reason: null };
       }
     }
